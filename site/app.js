@@ -88,7 +88,7 @@ const SCENES = {
   off: { meterLabel: 'THEIR METER · CODEX 5-HOUR', meter: 11.0, ledgerLabel: 'YOUR LEDGER · 33K TOKENS LOGGED', ledger: 0.4, max: 14, verdict: 'OFF-LEDGER +10.6', tone: 'bad',
     caption: 'Tue 12:48 → 16:41. The 5-hour meter rose 11 points while this machine logged 33k weighted tokens, worth about 0.4 at this account\u2019s usual rate.' },
   fast: { meterLabel: 'THEIR METER · CODEX WEEK', meter: 17.0, ledgerLabel: 'YOUR LEDGER · 11M TOKENS AT YOUR RATE', ledger: 7.2, max: 20, verdict: 'FAST METER 2.4\u00d7', tone: 'bad',
-    caption: 'Sat \u2013 Sun. Same model, same speed tier, and the weekly meter moved 2.4\u00d7 faster than on this account\u2019s normal days.' },
+    caption: 'Sat \u2013 Sun. Same model, same speed tier, the weekly meter moved 2.4\u00d7 faster than on normal days, and for those 30 hours the readings said plan \u201cplus\u201d on a \u201cpro\u201d account.' },
   stuck: { meterLabel: 'THEIR METER · CODEX 5-HOUR', meter: 98, ledgerLabel: 'YOUR LEDGER · WINDOW DUE TO RESET 11:31', ledger: 0, max: 100, verdict: 'STUCK RESET +21 MIN', tone: 'stuck',
     caption: 'The window was due to reset at 11:31. At 11:52 the meter still read 98% with the same reset time, and the client was still refusing work.' },
   clean: { meterLabel: 'THEIR METER · CODEX WEEK', meter: 3.0, ledgerLabel: 'YOUR LEDGER · 4.7M TOKENS AT YOUR RATE', ledger: 3.1, max: 5, verdict: 'ADDS UP \u22120.1', tone: 'ok',
