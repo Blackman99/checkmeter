@@ -38,7 +38,7 @@
   <p class="kicker">checkmeter · 现场笔记 · 2026-10-21</p>
   <h1>额度表就记在你的会话文件里</h1>
   <p class="byline">checkmeter 如何从 Codex 和 Claude Code 的本地日志重建 5 小时与每周额度表，以及“按错套餐计量”的周末在磁盘上长什么样。</p>
-  <p><span class="demo-tag">演示数据</span> 本文所有数字都来自 <code>checkmeter --demo</code> 生成的一周模拟会话文件，没有在任何真实账号上运行过。这份演示数据是按“错套餐”事件的形态构造的，用来说明检测逻辑，并不是对那次事件的测量。</p>
+  <p><span class="demo-stamp">演示数据</span> 本文所有数字都来自 <code>checkmeter --demo</code> 生成的一周模拟会话文件，没有在任何真实账号上运行过。这份演示数据是按“错套餐”事件的形态构造的，用来说明检测逻辑，并不是对那次事件的测量。</p>
 </header>
 
 <section id="grep">
@@ -75,12 +75,12 @@
     <li>对每个真正干了活的日子（≥0.2M 加权 token 且读数动了 ≥1 点），算出<b>每百万加权 token 消耗多少点</b>。</li>
     <li>这些日子的<b>中位数</b>就是你的基线，至少要有三天数据才会判定“偏快”。用中位数，是因为一天的异常不该改动用来衡量它的那把尺子。</li>
   </ol>
-  <p>之后的每条结论都是一个你能手算的比较。在演示数据里，Codex 5 小时表的基线是 <b>11.13 点/M</b> <span class="demo-tag">演示</span>。</p>
+  <p>之后的每条结论都是一个你能手算的比较。在演示数据里，Codex 5 小时表的基线是 <b>11.13 点/M</b> <span class="demo-stamp">演示</span>。</p>
 </section>
 
 <section id="flip">
   <h2><span>04</span> 套餐被切换，在数据里是什么样</h2>
-  <p>生成的这一周里有个周末，Pro 账号的读数显示成了 <code>plus</code>。下面是 <code>checkmeter --demo</code> 的两条结论 <span class="demo-tag">生成数据</span>：</p>
+  <p>生成的这一周里有个周末，Pro 账号的读数显示成了 <code>plus</code>。下面是 <code>checkmeter --demo</code> 的两条结论 <span class="demo-stamp">生成数据</span>：</p>
   <pre class="term"><code> <span class="bad">✖ FAST METER</span>    codex · meter ran 2.4× your baseline on Sat 17 – Sun 18 Oct (5h 2.4×, week 2.4×)
                  281 pts of the 5-hour meter for 11M weighted tokens = 26.17 pts/M,
                  2.4× your baseline 11.13 pts/M (median of 7 days)

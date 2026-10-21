@@ -38,7 +38,7 @@
   <p class="kicker">checkmeter · field notes · 21 Oct 2026</p>
   <h1>Your usage meter is already in your session files. Here's how to check it.</h1>
   <p class="byline">How checkmeter rebuilds the 5-hour and weekly meters from Codex and Claude Code logs, and what a wrong-plan weekend looks like on disk.</p>
-  <p><span class="demo-tag">DEMO DATA</span> Every number on this page comes from <code>checkmeter --demo</code>, a generated week of session files. It has not been run on a real account. The demo was built to have the same shape as the wrong-plan incident, so you can see what the detector looks for. It is not a measurement of that incident.</p>
+  <p><span class="demo-stamp">DEMO DATA</span> Every number on this page comes from <code>checkmeter --demo</code>, a generated week of session files. It has not been run on a real account. The demo was built to have the same shape as the wrong-plan incident, so you can see what the detector looks for. It is not a measurement of that incident.</p>
 </header>
 
 <section id="grep">
@@ -75,12 +75,12 @@
     <li>For each day with real work (≥0.2M weighted tokens and ≥1 point of movement), compute <b>points per million weighted tokens</b>.</li>
     <li>The <b>median</b> of those days is your baseline. It takes three days before anything gets called "fast". The median is used because one weird day shouldn't move the yardstick it's being measured with.</li>
   </ol>
-  <p>From there, each finding is a comparison you can do by hand. In the demo, the Codex 5-hour baseline is <b>11.13 pts/M</b> <span class="demo-tag">DEMO</span>.</p>
+  <p>From there, each finding is a comparison you can do by hand. In the demo, the Codex 5-hour baseline is <b>11.13 pts/M</b> <span class="demo-stamp">DEMO</span>.</p>
 </section>
 
 <section id="flip">
   <h2><span>04</span> What a plan flip looks like</h2>
-  <p>The generated week has a weekend where the readings say <code>plus</code> on a Pro account. Here are two findings from <code>checkmeter --demo</code> <span class="demo-tag">GENERATED DATA</span>:</p>
+  <p>The generated week has a weekend where the readings say <code>plus</code> on a Pro account. Here are two findings from <code>checkmeter --demo</code> <span class="demo-stamp">GENERATED DATA</span>:</p>
   <pre class="term"><code> <span class="bad">✖ FAST METER</span>    codex · meter ran 2.4× your baseline on Sat 17 – Sun 18 Oct (5h 2.4×, week 2.4×)
                  281 pts of the 5-hour meter for 11M weighted tokens = 26.17 pts/M,
                  2.4× your baseline 11.13 pts/M (median of 7 days)
