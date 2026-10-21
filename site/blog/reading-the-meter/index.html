@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your usage meter is already in your session files · checkmeter</title>
+<meta name="description" content="How checkmeter rebuilds the 5-hour and weekly meters from local Codex and Claude Code session files, and spots a plan flip. All numbers are generated demo data.">
+<link rel="canonical" href="https://blackman99.github.io/checkmeter/blog/reading-the-meter/">
+<link rel="alternate" hreflang="en" href="https://blackman99.github.io/checkmeter/blog/reading-the-meter/">
+<link rel="alternate" hreflang="zh" href="https://blackman99.github.io/checkmeter/blog/zh/reading-the-meter/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="checkmeter">
+<meta property="og:title" content="Your usage meter is already in your session files · checkmeter">
+<meta property="og:description" content="How checkmeter rebuilds the 5-hour and weekly meters from local Codex and Claude Code session files, and spots a plan flip. All numbers are generated demo data.">
+<meta property="og:url" content="https://blackman99.github.io/checkmeter/blog/reading-the-meter/">
+<meta property="og:image" content="https://blackman99.github.io/checkmeter/og-docs.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://blackman99.github.io/checkmeter/og-docs.png">
+<meta name="theme-color" content="#0f4c4a">
+<link rel="icon" href="../../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../fonts.css">
+<link rel="stylesheet" href="../../style.css">
+<link rel="stylesheet" href="../../docs/docs.css">
+</head>
+<body class="docs">
+<nav class="topbar" aria-label="site">
+  <a class="brand" href="../../"><img src="../../img/favicon.svg" alt="" width="22" height="22"> checkmeter</a>
+  <span class="seal">Field notes</span>
+  <a href="../../">Home</a>
+  <a href="../../docs/">Docs</a>
+  <a href="../../blog/">Blog</a>
+  <a href="../zh/reading-the-meter/">中文</a>
+  <a href="https://github.com/Blackman99/checkmeter">GitHub</a>
+</nav>
+<div class="manual post">
+<main class="sheets">
+<header class="title">
+  <p class="kicker">checkmeter · field notes · 21 Oct 2026</p>
+  <h1>Your usage meter is already in your session files. Here's how to check it.</h1>
+  <p class="byline">How checkmeter rebuilds the 5-hour and weekly meters from Codex and Claude Code logs, and what a wrong-plan weekend looks like on disk.</p>
+  <p><span class="demo-stamp">DEMO DATA</span> Every number on this page comes from <code>checkmeter --demo</code>, a generated week of session files. It has not been run on a real account. The demo was built to have the same shape as the wrong-plan incident, so you can see what the detector looks for. It is not a measurement of that incident.</p>
+</header>
+
+<section id="grep">
+  <h2><span>01</span> The meter is in a file you already have</h2>
+  <p>On 20 October the vendor said that about 40,000 Codex accounts had been metered against the wrong plan for a stretch. The issue threads that followed asked two things: where did my quota go, and can I prove it?</p>
+  <p>Most people don't know that Codex writes the answer to disk every turn. Each <code>token_count</code> event in <code>~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl</code> holds two things side by side. One is what this request used. The other is what the vendor's meter said right after:</p>
+  <pre class="term"><code>{&quot;timestamp&quot;:&quot;2026-10-17T02:04:02.034Z&quot;,&quot;type&quot;:&quot;event_msg&quot;,&quot;payload&quot;:{&quot;type&quot;:&quot;token_count&quot;,
+ &quot;info&quot;:{&quot;last_token_usage&quot;:{&quot;input_tokens&quot;:32862,&quot;cached_input_tokens&quot;:27838,&quot;output_tokens&quot;:4553,...}},
+ &quot;rate_limits&quot;:{&quot;limit_id&quot;:&quot;codex&quot;,
+   &quot;primary&quot;:  {&quot;used_percent&quot;:1, &quot;window_minutes&quot;:300,  &quot;resets_at&quot;:1792220642},
+   &quot;secondary&quot;:{&quot;used_percent&quot;:26,&quot;window_minutes&quot;:10080,&quot;resets_at&quot;:1792627200},
+   &quot;plan_type&quot;:&quot;plus&quot;}}}</code></pre>
+  <p>So both sides of the account are in one line: your tokens, and their percentage. That line is from the demo, and it is already strange. The plan is <code>"plus"</code>, but this generated account is on Pro. A token counter adds up the first half of the line and ignores the second. checkmeter is mostly about the second half.</p>
+  <pre class="term"><code>grep -ho '"plan_type":"[a-z]*"' ~/.codex/sessions/2026/10/*/*.jsonl | sort | uniq -c</code></pre>
+  <p>That one-liner is the cheapest wrong-plan check there is. The rest of this post covers the parts a grep can't do.</p>
+</section>
+
+<section id="rebuild">
+  <h2><span>02</span> Rebuilding two meters from a pile of snapshots</h2>
+  <p><code>src/core/codex.ts</code> turns each rollout into two streams: <b>usage events</b> (tokens per request) and <b>readings</b> (used_percent, window, resets_at, plan_type, and the file:line it came from). Three details matter more than you'd expect:</p>
+  <ul class="limits">
+    <li><b>Which window is which.</b> <code>primary</code>/<code>secondary</code> are hints. The real key is <code>window_minutes</code>: anything up to 6 h is the 5-hour meter, 6 to 8 days is the weekly one, and anything else is set aside rather than guessed.</li>
+    <li><b>Codex repeats itself.</b> It re-emits <code>token_count</code> with unchanged totals, and subagent rollouts replay their parent's history. If you count naively, a busy day looks twice as big and the meter looks fair. Events are keyed by their own content, not by file, and the first copy wins.</li>
+    <li><b>Tokens aren't all equal.</b> A cached input token costs a tenth of a fresh one, and output costs about eight times as much. Requests are weighted at API price ratios (Codex: input 1, cached 0.1, output 8). The scale doesn't matter, because the meter is only ever compared with itself.</li>
+  </ul>
+  <p>Claude Code (<code>src/core/claude.ts</code>) is the harder case. Its transcripts log usage, including the 5-minute vs 1-hour cache-write split, but they never log the meter. So <code>checkmeter record</code> sits in the status line, which <i>does</i> receive <code>rate_limits</code>, and appends a snapshot to <code>~/.checkmeter/claude-meter.jsonl</code>. Before you install it there's nothing to check against, and the report shows "—" for those sessions instead of a confident 0.</p>
+</section>
+
+<section id="baseline">
+  <h2><span>03</span> Your own exchange rate</h2>
+  <p>The vendors don't publish how many tokens one percent of a plan is worth, and checkmeter doesn't pretend to know. <code>src/core/analyse.ts</code> works the number out from your own history:</p>
+  <ol>
+    <li>Consecutive readings of one window form an <b>interval</b>. A new <code>resets_at</code> plus a falling value starts a new window. The points the meter moved in each interval are shared among the sessions active in it, in proportion to their weighted tokens. That gives you "where the meter went" per session.</li>
+    <li>For each day with real work (≥0.2M weighted tokens and ≥1 point of movement), compute <b>points per million weighted tokens</b>.</li>
+    <li>The <b>median</b> of those days is your baseline. It takes three days before anything gets called "fast". The median is used because one weird day shouldn't move the yardstick it's being measured with.</li>
+  </ol>
+  <p>From there, each finding is a comparison you can do by hand. In the demo, the Codex 5-hour baseline is <b>11.13 pts/M</b> <span class="demo-stamp">DEMO</span>.</p>
+</section>
+
+<section id="flip">
+  <h2><span>04</span> What a plan flip looks like</h2>
+  <p>The generated week has a weekend where the readings say <code>plus</code> on a Pro account. Here are two findings from <code>checkmeter --demo</code> <span class="demo-stamp">GENERATED DATA</span>:</p>
+  <pre class="term"><code> <span class="bad">✖ FAST METER</span>    codex · meter ran 2.4× your baseline on Sat 17 – Sun 18 Oct (5h 2.4×, week 2.4×)
+                 281 pts of the 5-hour meter for 11M weighted tokens = 26.17 pts/M,
+                 2.4× your baseline 11.13 pts/M (median of 7 days)
+                 same model and speed tier as your normal days
+ <span class="bad">✖ PLAN CHANGED</span>  codex · meter used "plus" limits for 30 h, between "pro" readings
+                 "pro" until Fri 16 Oct 16:26, "plus" from Sat 17 Oct 10:04 to Sun 18 Oct 16:04,
+                 "pro" again from Mon 19 Oct 09:31
+                 same stretch as the FAST METER finding: the faster meter and the other plan's limits line up</code></pre>
+  <p>Either finding alone is weak evidence. A meter running fast could mean you switched to a pricier model or the fast tier. That's why FAST METER is only a <i>flag</i> when the model mix and tier match your baseline days, and a <i>review</i> otherwise. A plan label change on its own could just be you upgrading. The pattern that matters is <b>A → B → A</b>: the label goes to another plan and then comes back, nobody touched billing, and over the same hours the meter ran faster per token. checkmeter merges that into one flagged finding and links it to the fast-meter span. It also tags the sessions in that span with "meter ran 2.4× fast that day", so the two 100-point weekend sessions aren't blamed on the user.</p>
+  <p>The other verdicts are the same idea applied to other shapes of reading. <b>OFF-LEDGER</b>: the meter rose 11 points while this machine logged usage worth ≈0.4. That usually means usage from somewhere else, like cloud tasks or another laptop, rather than a bug. <b>STUCK RESET</b>: readings after <code>resets_at</code> still show the old window. <b>METER DROP</b>: the weekly meter went down 12 points without a reset, which usually means a credit.</p>
+</section>
+
+<section id="limits">
+  <h2><span>05</span> What it can't tell you</h2>
+  <ul class="limits">
+    <li>Codex logs whole percents, so each reading is ±0.5 points. Thresholds (≥3 points, 2× baseline) sit well above that.</li>
+    <li>It only sees this machine. Anything else that shares the pool shows up as OFF-LEDGER, by design, and isn't spread across your local sessions.</li>
+    <li>A finding is "this reading doesn't fit your own history", not proof of overbilling. <code>checkmeter evidence</code> writes it up with file:line references and the grep to reproduce it, so support can check it instead of having to take your word for it.</li>
+  </ul>
+  <pre class="term"><code>npx github:Blackman99/checkmeter --demo     <span class="c"># the generated week on this page</span>
+npx github:Blackman99/checkmeter            <span class="c"># your own last 7 days, read locally, nothing sent</span></code></pre>
+  <p class="note">Source: <a href="https://github.com/Blackman99/checkmeter/tree/main/src/core">src/core</a> · the <a href="../../">landing page</a> runs the same analyser in your browser if you drop a rollout file on it.</p>
+</section>
+</main>
+</div>
+<footer class="foot"><div class="plate" aria-hidden="true"></div><p>checkmeter is MIT licensed · <a href="https://github.com/Blackman99/checkmeter">source</a> · <a href="../../">home</a></p><p class="small">Not affiliated with OpenAI, Anthropic or any weights &amp; measures office.</p></footer>
+</body>
+</html>

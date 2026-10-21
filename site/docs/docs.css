@@ -5,7 +5,7 @@
 .toc ol li::marker { font: 700 13px var(--mono); color: var(--steel-lo); }
 .toc a { color: var(--steel-hi); text-decoration: none; }
 .toc a:hover, .toc a.here { color: var(--seg); text-decoration: underline; }
-.sheets { background: var(--steel-hi); color: #16302e; border-radius: 12px; border: 6px solid var(--enamel-deep); padding: clamp(22px, 4vw, 48px); box-shadow: inset 14px 0 0 var(--steel); }
+.sheets { min-width: 0; background: var(--steel-hi); color: #16302e; border-radius: 12px; border: 6px solid var(--enamel-deep); padding: clamp(22px, 4vw, 48px); box-shadow: inset 14px 0 0 var(--steel); }
 .sheets a { color: #0f6b67; }
 .sheets code { background: #dde3e4; color: #0a3332; }
 .sheets .term code { background: none; color: inherit; }
@@ -30,9 +30,19 @@
 .sheets td { padding: 9px 10px; border-bottom: 2px solid #d3dadb; vertical-align: top; }
 .sheets .limits li::before { background: var(--enamel); }
 @media (max-width: 900px) {
-  .manual { grid-template-columns: 1fr; }
+  .manual { grid-template-columns: minmax(0, 1fr); }
   .toc { position: static; }
   .toc ol { columns: 2; }
   .sheets table { font-size: 14px; }
   .ref td:first-child { word-break: break-word; }
 }
+/* blog: same inspection sheets, single column, a demo-data stamp */
+.manual.post { grid-template-columns: minmax(0, 780px); }
+.demo-stamp { display: inline-block; font: 700 12px var(--mono); letter-spacing: 1px; background: var(--lcd, #10201c); color: var(--seg, #b6f5c8); padding: 3px 8px; border-radius: 4px; }
+.byline { font: 400 14px var(--mono); color: #4a5c5f; margin: 0 0 6px; }
+.posts { list-style: none; padding: 0; margin: 0; }
+.posts li { padding: 18px 0; border-bottom: 2px solid #d3dadb; }
+.posts a.t { font: 400 22px/1.25 var(--sign); color: var(--enamel-deep); text-decoration: none; }
+@media (max-width: 600px) { .docs .topbar { flex-wrap: wrap; row-gap: 6px; } .docs .topbar .seal { display: none; } }
+.manual > .sheets { max-width: 100%; box-sizing: border-box; margin: 0; }
+.sheets code { overflow-wrap: anywhere; } @media (max-width: 900px) { .sheets table { display: block; overflow-x: auto; } }
