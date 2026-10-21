@@ -1,0 +1,44 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+  real-files:
+    name: real install + demo end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+      - name: pack, install the tarball in a clean folder, run it
+        run: |
+          npm pack --pack-destination /tmp
+          mkdir /tmp/clean && cd /tmp/clean && npm init -y >/dev/null
+          npm install /tmp/checkmeter-*.tgz
+          npx checkmeter --version
+          npx checkmeter --demo --no-color | tee demo.txt
+          grep -q "OFF-LEDGER" demo.txt
+          npx checkmeter evidence --demo -o ev.md
+          grep -q "sed -n" ev.md
+          HOME=$(mktemp -d) npx checkmeter --no-color | grep -q "checkmeter --demo"

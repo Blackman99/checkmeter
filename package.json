@@ -1,0 +1,29 @@
+{
+  "name": "checkmeter",
+  "version": "0.1.0",
+  "description": "An independent check meter for your Codex and Claude Code plan: what moved your 5-hour and weekly usage meters, and which readings don't add up. Local, read-only.",
+  "type": "module",
+  "bin": { "checkmeter": "dist/cli.js" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE", "GOAL.md"],
+  "engines": { "node": ">=18.18" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
+    "build:web": "esbuild src/core/browser.ts --bundle --format=esm --minify --target=es2020 --outfile=site/js/analyse.js",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test build-test/test/",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build"
+  },
+  "keywords": ["codex", "claude-code", "usage-limit", "quota", "rate-limit", "ai-agent", "cli", "audit", "weekly-limit", "openai", "anthropic"],
+  "author": "Blackman99",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/Blackman99/checkmeter.git" },
+  "homepage": "https://blackman99.github.io/checkmeter/",
+  "bugs": { "url": "https://github.com/Blackman99/checkmeter/issues" },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}
