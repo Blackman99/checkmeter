@@ -44,6 +44,9 @@ test('usage errors exit 64 with a suggestion', () => {
   r = run(['--days', 'abc']);
   assert.equal(r.status, 64);
   assert.match(r.stderr, /--days must be a number/);
+  r = run(['setup', 'guard', 'codx']);
+  assert.equal(r.status, 64);
+  assert.match(r.stderr, /Did you mean `checkmeter setup guard codex`\?/);
   r = run(['--days']);
   assert.match(r.stderr, /--days needs a value/);
 });

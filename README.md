@@ -36,11 +36,11 @@ checkmeter                 # last 7 days, Codex + Claude Code
 checkmeter --demo          # the same report on a generated week, if you want to see every finding first
 ```
 
-![checkmeter --demo in a terminal: seven findings (CACHE TTL, FAST METER, STUCK RESET, OFF-LEDGER, PLAN CHANGED twice, METER DROP), then the sessions that moved the meter](site/img/demo.gif)
+![checkmeter --demo in a terminal: the findings (CACHE TTL, FAST METER, STUCK RESET, OFF-LEDGER, PLAN CHANGED, METER DROP, LIMIT HIT), then the sessions that moved the meter](site/img/demo.gif)
 
 <sub>The GIF is `checkmeter --demo`: generated data, not a real account.</sub>
 
-What it can say: **FAST METER** (the meter moved ≥2× your own baseline for the same model and speed tier) · **OFF-LEDGER** (points no session on this machine explains) · **STUCK RESET** (the reset time passed, the window didn't) · **PLAN CHANGED** (`plan_type` in the readings switched) · **METER DROP** (went down without a reset) · **CACHE TTL** (Claude Code stopped writing the 1-hour cache) · or, most of the time, that it all adds up.
+What it can say: **FAST METER** (the meter moved ≥2× your own baseline for the same model and speed tier) · **OFF-LEDGER** (points no session on this machine explains) · **STUCK RESET** (the reset time passed, the window didn't) · **PLAN CHANGED** (`plan_type` in the readings switched, or switched and came back) · **METER DROP** (went down without a reset) · **CACHE TTL** (Claude Code stopped writing the 1-hour cache) · or, most of the time, that it all adds up.
 
 Then:
 

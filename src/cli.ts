@@ -192,6 +192,7 @@ function cmdSetup(a: Args): number {
   if (target === 'guard') {
     const t = a.pos[1];
     if (!t) throw new UsageError('which agent? `checkmeter setup guard claude` or `checkmeter setup guard codex`');
+    if (t !== 'claude' && t !== 'codex') { const s = suggest(t, ['claude', 'codex']); throw new UsageError(`unknown guard target '${t}'${s ? `. Did you mean \`checkmeter setup guard ${s}\`?` : '; use `checkmeter setup guard claude` or `checkmeter setup guard codex`'}`); }
     process.stdout.write(guardSnippet(t, numFlag(a, '--max-5h', 90, 1, 100), numFlag(a, '--max-week', 95, 1, 100)));
     return 0;
   }

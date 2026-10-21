@@ -354,14 +354,27 @@ export function analyse(input: ParsedSource, opts: AnalyseOptions): Report {
   for (const h of ['codex', 'claude'] as Harness[]) {
     const rs = allReadings.filter((r) => r.harness === h && r.t >= since && r.window !== 'other');
     let prev: Reading | undefined;
+    const changes: { a: Reading; b: Reading }[] = [];
     for (const r of rs) {
       if (!r.plan) continue;
-      if (prev && prev.plan && r.plan !== prev.plan) {
-        findings.push({ kind: 'PLAN_CHANGED', harness: h, severity: 'review', title: `meter readings switched plan: ${prev.plan} → ${r.plan}`,
-          detail: [`last "${prev.plan}" reading ${fmtWhen(prev.t)}, first "${r.plan}" reading ${fmtWhen(r.t)}`, 'if you did not change plans, the meter was applying a different plan\'s limits in this span'],
-          readings: [prev, r], from: prev.t, to: r.t });
-      }
+      if (prev && prev.plan && r.plan !== prev.plan) changes.push({ a: prev, b: r });
       prev = r;
+    }
+    for (let i = 0; i < changes.length; i++) {
+      const c = changes[i], n = changes[i + 1];
+      if (n && n.a.plan === c.b.plan && n.b.plan === c.a.plan) {
+        // A → B → A: a stretch metered against another plan, then back
+        const hrs = (n.a.t - c.b.t) / HOUR;
+        findings.push({ kind: 'PLAN_CHANGED', harness: h, severity: 'flag', title: `meter used "${c.b.plan}" limits for ${hrs >= 1 ? Math.round(hrs) + ' h' : Math.round(hrs * 60) + ' min'}, between "${c.a.plan}" readings`,
+          detail: [`"${c.a.plan}" until ${fmtWhen(c.a.t)}, "${c.b.plan}" from ${fmtWhen(c.b.t)} to ${fmtWhen(n.a.t)}, "${c.a.plan}" again from ${fmtWhen(n.b.t)}`,
+            `if you didn't switch plans and back, that span was metered against the "${c.b.plan}" plan's limits`],
+          readings: [c.a, c.b, n.a, n.b], from: c.b.t, to: n.a.t });
+        i++;
+        continue;
+      }
+      findings.push({ kind: 'PLAN_CHANGED', harness: h, severity: 'review', title: `meter readings switched plan: ${c.a.plan} → ${c.b.plan}`,
+        detail: [`last "${c.a.plan}" reading ${fmtWhen(c.a.t)}, first "${c.b.plan}" reading ${fmtWhen(c.b.t)}`, 'if you did not change plans, the meter was applying a different plan\'s limits from here on'],
+        readings: [c.a, c.b], from: c.a.t, to: c.b.t });
     }
     const hitDays = new Set<string>();
     for (const r of rs) {
@@ -416,6 +429,11 @@ export function analyse(input: ParsedSource, opts: AnalyseOptions): Report {
   }
 
   mergeWindows(findings);
+  // two findings over the same stretch back each other up: say so
+  for (const p of findings.filter((f) => f.kind === 'PLAN_CHANGED' && f.severity === 'flag')) {
+    const fast = findings.find((f) => f.kind === 'FAST_METER' && f.harness === p.harness && f.from! <= p.to! + 6 * HOUR && f.to! >= p.from! - 6 * HOUR);
+    if (fast) p.detail.push(`same stretch as the FAST METER finding (${fmtDaySpan(fast.from!, fast.to!)}): the faster meter and the other plan's limits line up`);
+  }
   const order: Record<Severity, number> = { flag: 0, review: 1, note: 2 };
   findings.sort((x, y) => order[x.severity] - order[y.severity] || (x.from ?? 0) - (y.from ?? 0));
 

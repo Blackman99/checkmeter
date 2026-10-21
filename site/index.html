@@ -151,7 +151,7 @@
       <li><span class="v bad">FAST METER</span><span>A day where the meter moved 2× or more faster than your baseline for the same model and speed tier, with the model mix printed so you can rule out the obvious.</span></li>
       <li><span class="v bad">OFF-LEDGER</span><span>The meter rose by points that no session on this machine logged. Cloud tasks, another laptop, a shared workspace pool, or something you'd want to ask about.</span></li>
       <li><span class="v stuck">STUCK RESET</span><span>The reset time passed and the window didn't roll over: readings after it still show the old percentage and the old reset time.</span></li>
-      <li><span class="v warn">PLAN CHANGED</span><span>The <code>plan_type</code> inside the readings switched. If you didn't change plans, the meter used someone else's limits.</span></li>
+      <li><span class="v bad">PLAN CHANGED</span><span>The <code>plan_type</code> inside the readings switched, or switched and came back: "plus" limits for 30 hours between "pro" readings is what a stretch metered against the wrong plan looks like on disk.</span></li>
       <li><span class="v warn">METER DROP</span><span>The meter went down without a reset: a correction or a credit. Worth matching against any email you got.</span></li>
       <li><span class="v bad">CACHE TTL</span><span>Claude Code stopped writing the 1-hour prompt cache after an update, so every pause over 5 minutes pays to rebuild the context.</span></li>
       <li><span class="v ok">ADDS UP</span><span>The meter moved the way your own usage says it should. Most windows look like this, and the report says so plainly.</span></li>

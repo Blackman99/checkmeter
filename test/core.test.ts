@@ -85,7 +85,10 @@ test('demo home: every planted incident is found, nothing else is flagged', () =
   assert.ok(Math.abs(off[0].delta! - 11) <= 1.5, `off-ledger delta ${off[0].delta}`);
   const drop = report.findings.find((f) => f.kind === 'METER_DROP')!;
   assert.ok(Math.abs(drop.delta! + 12) <= 1);
-  assert.equal(report.findings.filter((f) => f.kind === 'PLAN_CHANGED').length, 2);
+  const plan = report.findings.filter((f) => f.kind === 'PLAN_CHANGED');
+  assert.equal(plan.length, 1, 'pro → plus → pro is one finding');
+  assert.match(plan[0].title, /meter used "plus" limits for \d+ h, between "pro" readings/);
+  assert.match(plan[0].detail.join(' '), /same stretch as the FAST METER finding/);
   // the Claude side adds up: no FAST/OFF/STUCK for claude
   assert.equal(report.findings.filter((f) => f.harness === 'claude' && f.severity === 'flag' && f.kind !== 'CACHE_TTL').length, 0);
 });

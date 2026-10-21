@@ -176,25 +176,25 @@ async function handle(files) {
   let since = Infinity, now = 0; for (const t of ts) { if (t < since) since = t; if (t > now) now = t; }
   const rep = lib.analyse(src, { now: now + 1, since: since - 1, version: 'web' });
   const flags = rep.findings.filter((f) => f.severity !== 'note');
-  dt.textContent = flags.length ? `${flags.length} READING${flags.length > 1 ? 'S' : ''} DON\u2019T ADD UP` : 'EVERYTHING ADDS UP';
+  dt.textContent = flags.length ? `${flags.length} READING${flags.length > 1 ? 'S' : ''} DON'T ADD UP` : 'EVERYTHING ADDS UP';
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
   const lines = [];
-  for (const h of rep.harnesses) lines.push(`<span class="rline head">${h.harness}  ${h.sessions} sessions \u00b7 ${h.events} requests \u00b7 ${lib.fmtTok(h.weighted)} weighted tokens \u00b7 ${h.readings} meter readings</span>`);
+  for (const h of rep.harnesses.filter((x) => x.events || x.readings)) lines.push(`<span class="rline head">${h.harness}  ${h.sessions} sessions \u00b7 ${h.events} requests \u00b7 ${lib.fmtTok(h.weighted)} weighted tokens \u00b7 ${h.readings.toLocaleString('en-US')} meter readings</span>`);
   lines.push('');
   if (!rep.findings.length) lines.push('<span class="rline">No findings. The meter moved the way these files say it should.</span>');
   for (const f of rep.findings) {
     const tone = f.kind === 'STUCK_RESET' ? 'stuck' : f.severity === 'flag' ? 'bad' : f.severity === 'review' ? 'warn' : 'dim';
     lines.push(`<span class="rline ${tone}">${f.severity === 'flag' ? '\u2716' : f.severity === 'review' ? '\u25c6' : '\u00b7'} ${esc(LABEL[f.kind] || f.kind)}  ${esc(f.harness)} \u00b7 ${esc(f.title)}</span>`);
-    for (const d of f.detail) lines.push(`<span class="rline dim">    ${esc(d)}</span>`);
+    for (const d of f.detail) lines.push(`<span class="rline dim d">${esc(d)}</span>`);
   }
   const top = rep.sessions.slice(0, 8);
   if (top.length) {
-    lines.push('', '<span class="rline head">where the meter went (5h / week points)</span>');
+    lines.push('', '<span class="rline head">where the meter went · session, 5h pts, week pts, weighted tokens, model, why</span>');
     for (const s of top) lines.push(`<span class="rline">  ${esc(s.id.slice(0, 8))}  ${s.d5h.toFixed(1).padStart(6)} ${s.dWeek.toFixed(1).padStart(6)}  ${lib.fmtTok(s.weighted).padStart(6)}  ${esc((s.model || '?').replace(/^claude-/, ''))}  ${esc(s.causes.slice(0, 2).join(' \u00b7 '))}</span>`);
   }
   if (skipped) lines.push('', `<span class="rline dim">${skipped} file${skipped > 1 ? 's' : ''} skipped: not Codex or Claude Code usage</span>`);
   lines.push('', '<span class="rline dim">Analysed in this tab. For every file on the machine, evidence packs and the guard, run the CLI.</span>');
-  res.innerHTML = `<pre class="term"><code>${lines.join('\n')}</code></pre>`;
+  res.innerHTML = `<div class="term out">${lines.map((l) => (l === '' ? '<span class="rline gap"></span>' : l)).join('')}</div>`;
   // and let the pump show the headline
   const off = rep.findings.find((f) => f.kind === 'OFF_LEDGER'), fast = rep.findings.find((f) => f.kind === 'FAST_METER');
   if (off && off.expected != null) play({ meterLabel: `YOUR FILE · ${off.harness.toUpperCase()} ${off.window === 'week' ? 'WEEK' : '5-HOUR'}`, meter: off.delta, ledgerLabel: `YOUR LEDGER · ${lib.fmtTok(off.tokens || 0).toUpperCase()} TOKENS LOGGED`, ledger: off.expected, max: Math.max(5, off.delta * 1.25), verdict: `OFF-LEDGER +${(off.delta - off.expected).toFixed(1)}`, tone: 'bad', caption: off.detail[0] });
