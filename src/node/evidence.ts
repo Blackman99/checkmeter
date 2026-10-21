@@ -63,7 +63,11 @@ function section(f: Finding, n: number): string[] {
     o.push('Check it yourself:');
     o.push('');
     o.push('```sh');
+    const lines = new Set<string>();
     for (const r of f.readings) {
+      const k = `${r.file}:${r.line}`;
+      if (lines.has(k)) continue; // the 5h and weekly reading share a line
+      lines.add(k);
       if (r.harness === 'codex') o.push(`sed -n '${r.line}p' ${shq(tildify(r.file))} | jq -c '{timestamp, rate_limits: .payload.rate_limits}'`);
       else o.push(`sed -n '${r.line}p' ${shq(tildify(r.file))} | jq -c '{t, five_hour, seven_day}'`);
     }

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">checkmeter: a stainless 5-gallon prover can</title>
+  <defs>
+    <clipPath id="body"><path d="M224 196C224 236 112 238 112 286V398C112 424 166 438 256 438S400 424 400 398V286C400 238 288 236 288 196Z"/></clipPath>
+  </defs>
+  <g stroke="#0a3332" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+    <!-- foot ring -->
+    <path d="M150 430H362V452C362 458 357 462 351 462H161C155 462 150 458 150 452Z" fill="#2a2f33"/>
+    <!-- body -->
+    <path d="M224 196C224 236 112 238 112 286V398C112 424 166 438 256 438S400 424 400 398V286C400 238 288 236 288 196Z" fill="#c4ccce"/>
+    <g clip-path="url(#body)" stroke="none">
+      <rect x="104" y="180" width="34" height="270" fill="#7d8a8d"/>
+      <rect x="158" y="180" width="26" height="270" fill="#f3f6f6"/>
+      <rect x="370" y="180" width="40" height="270" fill="#7d8a8d"/>
+    </g>
+    <path d="M224 196C224 236 112 238 112 286V398C112 424 166 438 256 438S400 424 400 398V286C400 238 288 236 288 196Z" fill="none"/>
+    <!-- seam -->
+    <path d="M114 300C150 314 362 314 398 300" fill="none" stroke-width="7"/>
+    <!-- neck -->
+    <rect x="224" y="60" width="64" height="142" fill="#c4ccce"/>
+    <rect x="229" y="64" width="11" height="134" fill="#f3f6f6" stroke="none"/>
+    <!-- rim -->
+    <rect x="208" y="40" width="96" height="26" rx="6" fill="#f3f6f6"/>
+    <!-- sight glass -->
+    <rect x="243" y="78" width="26" height="112" rx="5" fill="#10201c"/>
+    <rect x="248" y="140" width="16" height="45" fill="#f29e4c" stroke="none"/>
+    <!-- scale plate -->
+    <rect x="300" y="78" width="38" height="112" rx="4" fill="#f3f6f6"/>
+  </g>
+  <!-- level line (mint) and scale ticks -->
+  <path d="M236 140H276" stroke="#8ee3b0" stroke-width="9" stroke-linecap="round"/>
+  <g stroke="#0a3332" stroke-width="5" stroke-linecap="round">
+    <path d="M308 168H322M308 154H330M308 140H322M308 126H322"/>
+  </g>
+  <!-- the overshoot tick: the vendor meter says it went this far -->
+  <path d="M306 100H332" stroke="#ff6b57" stroke-width="9" stroke-linecap="round"/>
+</svg>

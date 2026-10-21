@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>checkmeter · an independent check meter for your AI coding plan</title>
+<meta name="description" content="From the session files Codex and Claude Code already write on your machine: what moved your 5-hour and weekly usage meters, and every reading that doesn't add up.">
+<link rel="canonical" href="https://blackman99.github.io/checkmeter/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="checkmeter">
+<meta property="og:title" content="checkmeter · check the meter on your AI coding plan">
+<meta property="og:description" content="Your Codex and Claude Code usage meters, checked against your own session files. Flags fast meters, stuck resets and points no local session explains.">
+<meta property="og:url" content="https://blackman99.github.io/checkmeter/">
+<meta property="og:image" content="https://blackman99.github.io/checkmeter/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A fuel pump LCD reads 11.0 points while a stainless prover can holds 0.4: OFF-LEDGER +10.6.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="checkmeter · check the meter on your AI coding plan">
+<meta name="twitter:description" content="Your Codex and Claude Code usage meters, checked against your own session files. Flags fast meters, stuck resets and points no local session explains.">
+<meta name="twitter:image" content="https://blackman99.github.io/checkmeter/og.png">
+<meta name="twitter:image:alt" content="A fuel pump LCD reads 11.0 points while a stainless prover can holds 0.4: OFF-LEDGER +10.6.">
+<meta name="theme-color" content="#0f4c4a">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-64.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="img/logo-512.png">
+<link rel="preload" href="fonts/Bungee-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/B612Mono-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="plate" width="36" height="36" patternUnits="userSpaceOnUse">
+      <rect width="36" height="36" fill="#2a2f33"/>
+      <path d="M5 13l8-8M23 31l8-8" stroke="#3a4146" stroke-width="5" stroke-linecap="round"/>
+      <path d="M23 5l8 8M5 23l8 8" stroke="#3a4146" stroke-width="5" stroke-linecap="round"/>
+    </pattern>
+  </defs>
+</svg>
+
+<nav class="topbar" aria-label="site">
+  <a class="brand" href="./"><img src="img/favicon.svg" alt="" width="22" height="22"> checkmeter</a>
+  <span class="seal">Not affiliated with OpenAI or Anthropic</span>
+  <a href="docs/">Docs</a>
+  <a href="https://github.com/Blackman99/checkmeter">GitHub</a>
+</nav>
+
+<header class="island" id="top">
+  <div class="scene">
+    <section class="pump" aria-label="the vendor meter">
+      <div class="crown">
+        <h1>checkmeter</h1>
+        <p class="crown-sub">independent check meter · AI coding plans</p>
+      </div>
+      <div class="face">
+        <div class="readout">
+          <span class="lcd-label" id="meterLabel">THEIR METER · CODEX 5-HOUR</span>
+          <div class="lcd"><svg class="seg" id="lcdMeter" viewBox="0 0 300 80" aria-hidden="true"></svg><span class="unit">PTS</span></div>
+          <span class="sr" id="meterText"></span>
+        </div>
+        <div class="readout">
+          <span class="lcd-label" id="ledgerLabel">YOUR LEDGER · SAME 4 HOURS</span>
+          <div class="lcd"><svg class="seg" id="lcdLedger" viewBox="0 0 300 80" aria-hidden="true"></svg><span class="unit">PTS</span></div>
+          <span class="sr" id="ledgerText"></span>
+        </div>
+        <div class="lcd verdict" id="verdict" aria-live="polite"><span class="ghost" aria-hidden="true">88888888888888</span><span class="lit" id="verdictText"></span></div>
+        <p class="caption" id="caption"></p>
+      </div>
+      <div class="grades" role="group" aria-label="example readings">
+        <button type="button" data-s="off" aria-pressed="true"><b>OFF</b><small>ledger</small></button>
+        <button type="button" data-s="fast" aria-pressed="false"><b>FAST</b><small>meter</small></button>
+        <button type="button" data-s="stuck" aria-pressed="false"><b>STUCK</b><small>reset</small></button>
+        <button type="button" data-s="clean" aria-pressed="false"><b>ADDS</b><small>up</small></button>
+      </div>
+      <p class="demo-tag">numbers from <code>checkmeter --demo</code> · generated, not a real account</p>
+    </section>
+
+    <section class="bench" aria-label="your ledger">
+      <svg class="prover" id="prover" viewBox="0 0 420 560" role="img" aria-labelledby="proverTitle">
+        <title id="proverTitle">A stainless prover can. The liquid in its sight glass is what your own session files account for; the coral pointer is what the vendor meter says.</title>
+        <defs>
+          <clipPath id="glassClip"><rect x="178" y="56" width="44" height="300" rx="8"/></clipPath>
+          <clipPath id="bodyClip"><path d="M168 360C168 400 52 404 52 452V516C52 538 120 548 200 548S348 538 348 516V452C348 404 232 400 232 360Z"/></clipPath>
+        </defs>
+        <!-- hose comes in from the pump -->
+        <path id="hose" d="M-30 330C40 330 60 36 160 30" fill="none" stroke="#2a2f33" stroke-width="16" stroke-linecap="round"/>
+        <path id="flow" d="M-30 330C40 330 60 36 160 30" fill="none" stroke="#f29e4c" stroke-width="5" stroke-linecap="round" stroke-dasharray="10 18"/>
+        <!-- nozzle -->
+        <path d="M150 16H212L222 34H186L182 46H164Z" fill="#2a2f33" stroke="#0a3332" stroke-width="5" stroke-linejoin="round"/>
+        <g stroke="#0a3332" stroke-width="7" stroke-linejoin="round">
+          <path d="M168 360C168 400 52 404 52 452V516C52 538 120 548 200 548S348 538 348 516V452C348 404 232 400 232 360Z" fill="#c4ccce"/>
+          <g clip-path="url(#bodyClip)" stroke="none">
+            <rect x="40" y="350" width="30" height="210" fill="#7d8a8d"/>
+            <rect x="86" y="350" width="22" height="210" fill="#f3f6f6"/>
+            <rect x="318" y="350" width="40" height="210" fill="#7d8a8d"/>
+          </g>
+          <path d="M168 360C168 400 52 404 52 452V516C52 538 120 548 200 548S348 538 348 516V452C348 404 232 400 232 360Z" fill="none"/>
+          <path d="M54 466C100 480 300 480 346 466" fill="none" stroke-width="5"/>
+          <rect x="164" y="44" width="72" height="320" fill="#c4ccce"/>
+          <rect x="170" y="48" width="9" height="312" fill="#f3f6f6" stroke="none"/>
+          <rect x="174" y="52" width="52" height="308" rx="9" fill="#10201c"/>
+        </g>
+        <g clip-path="url(#glassClip)">
+          <path id="liquid" d="" fill="#f29e4c"/>
+          <path id="liquidTop" d="" fill="none" stroke="#8ee3b0" stroke-width="4"/>
+        </g>
+        <!-- scale -->
+        <g id="scale">
+          <rect x="250" y="44" width="94" height="320" rx="6" fill="#f3f6f6" stroke="#0a3332" stroke-width="7"/>
+          <rect id="band" x="254" y="0" width="12" height="0" fill="#8ee3b0"/>
+          <g id="ticks" font-family="B612 Mono, monospace" font-size="14" fill="#0a3332"></g>
+          <g id="pointer">
+            <path d="M246 0H272" stroke="#ff6b57" stroke-width="7" stroke-linecap="round"/>
+            <text x="350" y="5" font-family="B612 Mono, monospace" font-weight="700" font-size="15" fill="#ffd9d2" id="pointerText">meter</text>
+          </g>
+        </g>
+        <rect x="102" y="540" width="196" height="16" rx="4" fill="#2a2f33" stroke="#0a3332" stroke-width="6"/>
+        <text x="200" y="510" text-anchor="middle" font-family="Bungee, sans-serif" font-size="17" fill="#0a3332" letter-spacing="1">YOUR LEDGER</text>
+      </svg>
+    </section>
+  </div>
+  <div class="plate" aria-hidden="true"></div>
+</header>
+
+<main>
+  <section class="lede">
+    <p class="big">Your AI coding plan has a meter: a 5-hour bar and a weekly bar. The meter readings, and every token you spent, are <em>already in files on your disk.</em> checkmeter puts the two side by side and tells you which readings don't add up.</p>
+    <div class="install">
+      <span class="prompt">$</span>
+      <code id="installCmd">npx github:Blackman99/checkmeter</code>
+      <button type="button" class="copy" data-copy="npx github:Blackman99/checkmeter">copy</button>
+    </div>
+    <p class="small">Node 18+. Zero dependencies. Reads <code>~/.codex/sessions</code> and <code>~/.claude/projects</code>, prints a report, writes nothing unless you ask. <a href="docs/#install">Other ways to install</a>.<span class="alt">No session files yet? See a generated week first: <code>npx github:Blackman99/checkmeter --demo</code></span></p>
+  </section>
+
+  <section class="door" id="pump-01">
+    <span class="pumpno">PUMP 01</span>
+    <h2>The readings are already on your disk</h2>
+    <p>Codex writes the vendor's meter into every <code>token_count</code> event of its rollout files: <code>used_percent</code> for the 5-hour and weekly windows, when each resets, and the plan it thinks you're on. Check yours right now:</p>
+    <pre class="term"><code>grep -rho '"used_percent":[0-9.]*' ~/.codex/sessions | tail</code></pre>
+    <p>Claude Code hands the same two meters to its status line on every reply. <code>checkmeter setup claude</code> wraps your status line (keeping it as it is) so those readings get logged too. From then on both sides of the ledger are local, plain JSON, and yours.</p>
+  </section>
+
+  <section class="door" id="pump-02">
+    <span class="pumpno">PUMP 02</span>
+    <h2>What the inspection can say</h2>
+    <p>Every finding compares the meter with <em>itself</em>: your usual points per million weighted tokens on steady days. No published limit is assumed.</p>
+    <ul class="verdicts">
+      <li><span class="v bad">FAST METER</span><span>A day where the meter moved 2× or more faster than your baseline for the same model and speed tier, with the model mix printed so you can rule out the obvious.</span></li>
+      <li><span class="v bad">OFF-LEDGER</span><span>The meter rose by points that no session on this machine logged. Cloud tasks, another laptop, a shared workspace pool, or something you'd want to ask about.</span></li>
+      <li><span class="v stuck">STUCK RESET</span><span>The reset time passed and the window didn't roll over: readings after it still show the old percentage and the old reset time.</span></li>
+      <li><span class="v warn">PLAN CHANGED</span><span>The <code>plan_type</code> inside the readings switched. If you didn't change plans, the meter used someone else's limits.</span></li>
+      <li><span class="v warn">METER DROP</span><span>The meter went down without a reset: a correction or a credit. Worth matching against any email you got.</span></li>
+      <li><span class="v bad">CACHE TTL</span><span>Claude Code stopped writing the 1-hour prompt cache after an update, so every pause over 5 minutes pays to rebuild the context.</span></li>
+      <li><span class="v ok">ADDS UP</span><span>The meter moved the way your own usage says it should. Most windows look like this, and the report says so plainly.</span></li>
+    </ul>
+  </section>
+
+  <section class="door bench-door" id="pump-03">
+    <span class="pumpno">PUMP 03</span>
+    <h2>Put your own file on the bench</h2>
+    <p>Drop one or more <code>rollout-*.jsonl</code> files (or Claude Code transcripts plus <code>~/.checkmeter/claude-meter.jsonl</code>) here. The same analyser the CLI uses runs in this tab. Nothing is uploaded; there is no server.</p>
+    <label class="drop" id="drop" tabindex="0">
+      <input type="file" id="file" multiple accept=".jsonl,.json,application/json">
+      <span class="drop-lcd"><span id="dropText">DROP FILES OR CLICK</span></span>
+      <span class="drop-hint">Codex: <code>~/.codex/sessions/2026/10/…/rollout-*.jsonl</code> · a week of files gives a baseline</span>
+    </label>
+    <div class="result" id="result" hidden></div>
+  </section>
+
+  <section class="door" id="pump-04">
+    <span class="pumpno">PUMP 04</span>
+    <h2>Hand the inspector's report to support</h2>
+    <p><code>checkmeter evidence -o meter-evidence.md</code> writes the flagged readings up as a ticket: a summary table, each reading with its UTC time and <code>file:line</code>, and a one-line <code>sed | jq</code> for each so whoever reads it can check the numbers against the raw files. No prompts, no code, no responses.</p>
+    <pre class="term paper"><code><b>## 4. OFF-LEDGER: meter rose 11 pts (5h) and 4.0 pts (week) that no session on this machine explains</b>
+
+- between Tue 20 Oct 12:48 (13% of 5h) and Tue 20 Oct 16:41 (24% of 5h) local
+  sessions logged 33k weighted tokens, ≈ 0.4 pts at my baseline rate
+
+| reading | time (UTC)           | used    | resets at (UTC)      | plan | source                  |
+|---------|----------------------|---------|----------------------|------|-------------------------|
+| from    | 2026-10-20T04:48:22Z | 5h 13%  | 2026-10-20T09:11:22Z | pro  | `…/rollout-…8ce48940.jsonl:32` |
+| to      | 2026-10-20T08:41:31Z | 5h 24%  | 2026-10-20T09:11:22Z | pro  | `…/rollout-…7d54b8ae.jsonl:3`  |
+
+sed -n '32p' ~/.codex/sessions/2026/10/20/rollout-…8ce48940.jsonl | jq -c '{timestamp, rate_limits: .payload.rate_limits}'</code></pre>
+    <p class="small">Excerpt from <code>checkmeter evidence --demo</code>: generated data, not a real account.</p>
+  </section>
+
+  <section class="door" id="pump-05">
+    <span class="pumpno">PUMP 05</span>
+    <h2>A guard before the meter runs dry</h2>
+    <p>Hitting the 5-hour wall halfway through a refactor is the expensive way to find out. <code>checkmeter guard</code> reads the newest reading and exits 2 with a plain message once you cross your line (90% of the 5-hour window, 95% of the week by default), so the agent stops cleanly instead of mid-edit.</p>
+    <pre class="term"><code><span class="c"># print the hook block for your client, paste it where it says</span>
+checkmeter setup guard claude     <span class="c"># → ~/.claude/settings.json  hooks.PreToolUse</span>
+checkmeter setup guard codex      <span class="c"># → ~/.codex/config.toml     [[hooks.PreToolUse]]</span>
+
+<span class="c"># what the agent sees when it trips</span>
+checkmeter guard: the Codex 5-hour meter is at 93% (guard line 90%). It resets
+Wed 21 Oct 14:12 (in 38 min). Stop here and tell the user how far the task got,
+or ask them to raise --max-5h.</code></pre>
+  </section>
+
+  <section class="door" id="pump-06">
+    <span class="pumpno">PUMP 06</span>
+    <h2>What an inspector can't see</h2>
+    <ul class="limits">
+      <li>Only what this machine logged. Usage from another computer or the cloud shows up as OFF-LEDGER, which is the point, but checkmeter can't say which of those it was.</li>
+      <li>Codex logs readings as whole percents, so a single reading is ±0.5 pts. Findings need several points of difference before they fire.</li>
+      <li>Claude Code doesn't keep meter readings in its transcripts; they exist from the day you run <code>setup claude</code>. Before that, sessions show "before the meter was recorded".</li>
+      <li>A finding is a reading that doesn't match your own history, not proof of a billing error. The evidence pack is written to be checked, not to accuse.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="plate" aria-hidden="true"></div>
+  <p><img src="img/logo.svg" alt="" width="40" height="40"> checkmeter is MIT licensed · <a href="https://github.com/Blackman99/checkmeter">source</a> · <a href="docs/">docs</a> · <a href="https://github.com/Blackman99/checkmeter/issues">report a reading it got wrong</a></p>
+  <p class="small">Not affiliated with OpenAI, Anthropic or any weights &amp; measures office. Codex and Claude Code are trademarks of their owners.</p>
+</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

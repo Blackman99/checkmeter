@@ -1,0 +1,5 @@
+@font-face { font-family: "Bungee"; src: url("fonts/Bungee-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Public Sans"; src: url("fonts/PublicSans-var.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Public Sans"; src: url("fonts/PublicSans-var-italic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "B612 Mono"; src: url("fonts/B612Mono-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "B612 Mono"; src: url("fonts/B612Mono-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
