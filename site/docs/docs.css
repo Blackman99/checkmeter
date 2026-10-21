@@ -36,3 +36,11 @@
   .sheets table { font-size: 14px; }
   .ref td:first-child { word-break: break-word; }
 }
+/* blog: same inspection sheets, single column, a demo-data stamp */
+.manual.post { grid-template-columns: minmax(0, 780px); }
+.demo-tag { display: inline-block; font: 700 12px var(--mono); letter-spacing: 1px; background: var(--lcd, #10201c); color: var(--seg, #b6f5c8); padding: 3px 8px; border-radius: 4px; }
+.byline { font: 400 14px var(--mono); color: #4a5c5f; margin: 0 0 6px; }
+.posts { list-style: none; padding: 0; margin: 0; }
+.posts li { padding: 18px 0; border-bottom: 2px solid #d3dadb; }
+.posts a.t { font: 400 22px/1.25 var(--sign); color: var(--enamel-deep); text-decoration: none; }
+@media (max-width: 600px) { .docs .topbar { flex-wrap: wrap; row-gap: 6px; } .docs .topbar .seal { display: none; } }

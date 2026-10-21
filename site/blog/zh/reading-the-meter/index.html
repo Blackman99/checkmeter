@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>额度表就记在你的会话文件里 · checkmeter</title>
+<meta name="description" content="checkmeter 如何从本地 Codex / Claude Code 会话文件重建 5 小时与每周额度表，并识别套餐被切换。文中数字均为生成的演示数据。">
+<link rel="canonical" href="https://blackman99.github.io/checkmeter/blog/zh/reading-the-meter/">
+<link rel="alternate" hreflang="en" href="https://blackman99.github.io/checkmeter/blog/reading-the-meter/">
+<link rel="alternate" hreflang="zh" href="https://blackman99.github.io/checkmeter/blog/zh/reading-the-meter/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="checkmeter">
+<meta property="og:title" content="额度表就记在你的会话文件里 · checkmeter">
+<meta property="og:description" content="checkmeter 如何从本地 Codex / Claude Code 会话文件重建 5 小时与每周额度表，并识别套餐被切换。文中数字均为生成的演示数据。">
+<meta property="og:url" content="https://blackman99.github.io/checkmeter/blog/zh/reading-the-meter/">
+<meta property="og:image" content="https://blackman99.github.io/checkmeter/og-docs.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://blackman99.github.io/checkmeter/og-docs.png">
+<meta name="theme-color" content="#0f4c4a">
+<link rel="icon" href="../../../img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../../fonts.css">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../docs/docs.css">
+</head>
+<body class="docs">
+<nav class="topbar" aria-label="site">
+  <a class="brand" href="../../../"><img src="../../../img/favicon.svg" alt="" width="22" height="22"> checkmeter</a>
+  <span class="seal">现场笔记</span>
+  <a href="../../../">Home</a>
+  <a href="../../../docs/">Docs</a>
+  <a href="../../../blog/">Blog</a>
+  <a href="../../reading-the-meter/">English</a>
+  <a href="https://github.com/Blackman99/checkmeter">GitHub</a>
+</nav>
+<div class="manual post">
+<main class="sheets">
+<header class="title">
+  <p class="kicker">checkmeter · 现场笔记 · 2026-10-21</p>
+  <h1>额度表就记在你的会话文件里</h1>
+  <p class="byline">checkmeter 如何从 Codex 和 Claude Code 的本地日志重建 5 小时与每周额度表，以及“按错套餐计量”的周末在磁盘上长什么样。</p>
+  <p><span class="demo-tag">演示数据</span> 本文所有数字都来自 <code>checkmeter --demo</code> 生成的一周模拟会话文件，没有在任何真实账号上运行过。这份演示数据是按“错套餐”事件的形态构造的，用来说明检测逻辑，并不是对那次事件的测量。</p>
+</header>
+
+<section id="grep">
+  <h2><span>01</span> 额度表就在你已有的文件里</h2>
+  <p>10 月 20 日，厂商承认约 4 万个 Codex 账号有一段时间被按错误的套餐计量。随后各个 issue 里的问题都是同两个：我的额度去哪了？我能证明吗？</p>
+  <p>很少有人注意到，Codex 每一轮都会把答案写到磁盘上。<code>~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl</code> 里的每个 <code>token_count</code> 事件同时记着两样东西：这次请求用了多少 token，以及请求之后厂商额度表的读数：</p>
+  <pre class="term"><code>{&quot;timestamp&quot;:&quot;2026-10-17T02:04:02.034Z&quot;,&quot;type&quot;:&quot;event_msg&quot;,&quot;payload&quot;:{&quot;type&quot;:&quot;token_count&quot;,
+ &quot;info&quot;:{&quot;last_token_usage&quot;:{&quot;input_tokens&quot;:32862,&quot;cached_input_tokens&quot;:27838,&quot;output_tokens&quot;:4553,...}},
+ &quot;rate_limits&quot;:{&quot;limit_id&quot;:&quot;codex&quot;,
+   &quot;primary&quot;:  {&quot;used_percent&quot;:1, &quot;window_minutes&quot;:300,  &quot;resets_at&quot;:1792220642},
+   &quot;secondary&quot;:{&quot;used_percent&quot;:26,&quot;window_minutes&quot;:10080,&quot;resets_at&quot;:1792627200},
+   &quot;plan_type&quot;:&quot;plus&quot;}}}</code></pre>
+  <p>账的两边都在同一行里：你的 token，和他们的百分比。上面这行就取自演示数据，而且它本身已经不对劲了：这个模拟账号是 Pro，读数里的 <code>plan_type</code> 却是 <code>"plus"</code>。token 统计工具只加总前半行，后半行直接忽略；checkmeter 主要看的就是后半行。</p>
+  <pre class="term"><code>grep -ho '"plan_type":"[a-z]*"' ~/.codex/sessions/2026/10/*/*.jsonl | sort | uniq -c</code></pre>
+  <p>这一行是最便宜的“错套餐”自查。本文剩下的部分讲 grep 做不到的事。</p>
+</section>
+
+<section id="rebuild">
+  <h2><span>02</span> 从一堆快照重建两块表</h2>
+  <p><code>src/core/codex.ts</code> 把每个 rollout 拆成两条流：<b>用量事件</b>（每次请求的 token）和<b>读数</b>（used_percent、窗口、resets_at、plan_type，以及它出自哪个文件的哪一行）。有三个细节比想象中重要：</p>
+  <ul class="limits">
+    <li><b>窗口靠什么分。</b><code>primary</code>/<code>secondary</code> 只能当提示，真正的依据是 <code>window_minutes</code>：不超过 6 小时算 5 小时表，6 到 8 天算周表，其余的单独放一边，不去猜。</li>
+    <li><b>Codex 会重复记录。</b>它会重复发出总量不变的 <code>token_count</code>，子代理的 rollout 还会重放父会话的历史。直接相加的话，忙的一天会被算成两倍，额度表反而显得很公道。所以事件按内容本身去重，而不是按文件，只保留第一份。</li>
+    <li><b>token 不等价。</b>缓存命中的输入只有新输入成本的十分之一，输出大约是八倍。所以请求按 API 价格比例加权（Codex：输入 1、缓存 0.1、输出 8）。绝对刻度无所谓，因为额度表永远只和它自己比。</li>
+  </ul>
+  <p>Claude Code（<code>src/core/claude.ts</code>）更麻烦一些：transcript 记了用量，连 5 分钟和 1 小时缓存写入都分开记了，却从不记额度表读数。好在状态栏能拿到 <code>rate_limits</code>，于是 <code>checkmeter record</code> 挂在状态栏上，把每次快照追加到 <code>~/.checkmeter/claude-meter.jsonl</code>。装上之前没有可以对照的读数，报告里这些会话显示“—”，而不是一个看似确定的 0。</p>
+</section>
+
+<section id="baseline">
+  <h2><span>03</span> 你自己的“汇率”</h2>
+  <p>厂商不公布百分之一额度值多少 token，checkmeter 也不假装知道。<code>src/core/analyse.ts</code> 从你自己的历史里把这个数算出来：</p>
+  <ol>
+    <li>同一窗口的相邻两次读数构成一个<b>区间</b>；新的 <code>resets_at</code> 加上读数回落，就是新窗口的开始。每个区间里额度表走了多少点，按加权 token 比例分给这段时间里活跃的会话，这就得到了每个会话的“额度花在哪”。</li>
+    <li>对每个真正干了活的日子（≥0.2M 加权 token 且读数动了 ≥1 点），算出<b>每百万加权 token 消耗多少点</b>。</li>
+    <li>这些日子的<b>中位数</b>就是你的基线，至少要有三天数据才会判定“偏快”。用中位数，是因为一天的异常不该改动用来衡量它的那把尺子。</li>
+  </ol>
+  <p>之后的每条结论都是一个你能手算的比较。在演示数据里，Codex 5 小时表的基线是 <b>11.13 点/M</b> <span class="demo-tag">演示</span>。</p>
+</section>
+
+<section id="flip">
+  <h2><span>04</span> 套餐被切换，在数据里是什么样</h2>
+  <p>生成的这一周里有个周末，Pro 账号的读数显示成了 <code>plus</code>。下面是 <code>checkmeter --demo</code> 的两条结论 <span class="demo-tag">生成数据</span>：</p>
+  <pre class="term"><code> <span class="bad">✖ FAST METER</span>    codex · meter ran 2.4× your baseline on Sat 17 – Sun 18 Oct (5h 2.4×, week 2.4×)
+                 281 pts of the 5-hour meter for 11M weighted tokens = 26.17 pts/M,
+                 2.4× your baseline 11.13 pts/M (median of 7 days)
+                 same model and speed tier as your normal days
+ <span class="bad">✖ PLAN CHANGED</span>  codex · meter used "plus" limits for 30 h, between "pro" readings
+                 "pro" until Fri 16 Oct 16:26, "plus" from Sat 17 Oct 10:04 to Sun 18 Oct 16:04,
+                 "pro" again from Mon 19 Oct 09:31
+                 same stretch as the FAST METER finding: the faster meter and the other plan's limits line up</code></pre>
+  <p>两条单独看都不算有力的证据。额度表走得快，可能是你换了更贵的模型或开了快速档，所以只有模型和速度档都跟基线日一致时，FAST METER 才标为 <i>flag</i>，否则只算 <i>review</i>。套餐标签变了，也可能只是你自己升级了。真正有意义的是 <b>A → B → A</b>：标签切到别的套餐又切回来，期间没人动过账单，而同一段时间里每个 token 消耗的点数变多了。checkmeter 把这种情况合并成一条 flag，并关联到偏快的那段时间；那段时间里的会话会标注“meter ran 2.4× fast that day”，这样周末那两个吃掉 100 点的会话就不会被算成用户自己的锅。</p>
+  <p>其他几种结论是同一套思路对应不同形态的读数。<b>OFF-LEDGER</b>：额度表涨了 11 点，本机只记录了约 0.4 点的用量，多半是别处在用（云端任务、另一台电脑），不一定是 bug。<b>STUCK RESET</b>：过了 <code>resets_at</code> 读数仍停在旧窗口。<b>METER DROP</b>：没有重置，周表却降了 12 点，通常是厂商补偿。</p>
+</section>
+
+<section id="limits">
+  <h2><span>05</span> 它说明不了什么</h2>
+  <ul class="limits">
+    <li>Codex 只记整数百分比，每次读数有 ±0.5 点的误差；阈值（≥3 点、2 倍基线）远高于这个误差。</li>
+    <li>它只看得到本机。共用同一额度池的其他来源会按设计显示为 OFF-LEDGER，不会被摊到本地会话上。</li>
+    <li>一条结论的意思是“这次读数与你自己的历史不符”，不是多扣费的证明。<code>checkmeter evidence</code> 会把它整理成带 file:line 和复现 grep 的材料，客服可以直接核对，而不必只听你一面之词。</li>
+  </ul>
+  <pre class="term"><code>npx github:Blackman99/checkmeter --demo     <span class="c"># 本文用的生成数据</span>
+npx github:Blackman99/checkmeter            <span class="c"># 你自己最近 7 天，本地读取，不上传</span></code></pre>
+  <p class="note">源码：<a href="https://github.com/Blackman99/checkmeter/tree/main/src/core">src/core</a> · <a href="../../../">首页</a>内置同一个分析器，把 rollout 文件拖进去即可在浏览器本地分析。</p>
+</section>
+</main>
+</div>
+<footer class="foot"><div class="plate" aria-hidden="true"></div><p>checkmeter is MIT licensed · <a href="https://github.com/Blackman99/checkmeter">source</a> · <a href="../../../">home</a></p><p class="small">Not affiliated with OpenAI, Anthropic or any weights &amp; measures office.</p></footer>
+</body>
+</html>
