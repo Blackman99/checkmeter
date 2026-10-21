@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -52,7 +52,8 @@ test('guard exits 2 with the reason on stderr', () => {
   const home = mkdtempSync(join(tmpdir(), 'cm-guard-'));
   const now = Date.now();
   const line = JSON.stringify({ t: now - 30_000, session: 's', five_hour: { used_percentage: 96, resets_at: Math.round(now / 1000) + 3600 }, seven_day: { used_percentage: 50, resets_at: Math.round(now / 1000) + 86400 } });
-  spawnSync('sh', ['-c', `mkdir -p ${home}/.checkmeter && printf '%s\\n' '${line}' > ${home}/.checkmeter/claude-meter.jsonl`]);
+  mkdirSync(join(home, '.checkmeter'));
+  writeFileSync(join(home, '.checkmeter', 'claude-meter.jsonl'), line + '\n');
   const r = run(['guard', '--home', home, '--harness', 'claude'], { CHECKMETER_HOME: '' });
   assert.equal(r.status, 2, r.stderr);
   assert.match(r.stderr, /Claude Code 5-hour meter is at 96%/);
