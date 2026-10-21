@@ -4,3 +4,4 @@ build-test/
 *.tgz
 .DS_Store
 /tmp/
+site/js/analyse.js

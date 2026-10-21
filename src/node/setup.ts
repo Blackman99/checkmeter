@@ -48,7 +48,7 @@ export function guardSnippet(target: string, max5h: number, maxWeek: number): st
     "PreToolUse": [
       {
         "matcher": "*",
-        "hooks": [{ "type": "command", "command": "${cmd}", "timeout": 10 }]
+        "hooks": [{ "type": "command", "command": "${cmd} --harness claude", "timeout": 10 }]
       }
     ]
   }

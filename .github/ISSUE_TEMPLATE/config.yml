@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: A question about your bill or plan limits
+    url: https://help.openai.com/
+    about: checkmeter can't see the vendor's side. For Codex billing ask OpenAI support; for Claude Code ask Anthropic support (checkmeter evidence -o meter-evidence.md gives them the readings).

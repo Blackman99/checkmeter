@@ -32,6 +32,8 @@ Options
   --no-color         plain text (NO_COLOR is honoured too)
   --codex-home DIR   Codex home (default $CODEX_HOME or ~/.codex)
   --claude-dir DIR   Claude Code config dir (default $CLAUDE_CONFIG_DIR or ~/.claude)
+  --meter-log FILE   recorded Claude Code meter (default ~/.checkmeter/claude-meter.jsonl)
+  --fast-ratio N     how many times your baseline counts as a fast meter (default 2)
   --max-5h N         guard: block at N% of the 5-hour meter (default 90)
   --max-week N       guard: block at N% of the weekly meter (default 95)
   -h, --help · -v, --version

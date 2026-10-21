@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>checkmeter docs · install, usage, configuration, reference, FAQ</title>
+<meta name="description" content="How checkmeter reads Codex and Claude Code session files, what each finding means, every command and flag, and how the numbers are computed.">
+<link rel="canonical" href="https://blackman99.github.io/checkmeter/docs/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="checkmeter">
+<meta property="og:title" content="checkmeter docs · the inspection manual">
+<meta property="og:description" content="Install, usage, configuration, reference and FAQ for checkmeter, the independent check meter for Codex and Claude Code usage limits.">
+<meta property="og:url" content="https://blackman99.github.io/checkmeter/docs/">
+<meta property="og:image" content="https://blackman99.github.io/checkmeter/og-docs.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="checkmeter docs: the inspection manual, with a stainless prover can and a list of findings.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="checkmeter docs · the inspection manual">
+<meta name="twitter:description" content="Install, usage, configuration, reference and FAQ for checkmeter, the independent check meter for Codex and Claude Code usage limits.">
+<meta name="twitter:image" content="https://blackman99.github.io/checkmeter/og-docs.png">
+<meta name="twitter:image:alt" content="checkmeter docs: the inspection manual, with a stainless prover can and a list of findings.">
+<meta name="theme-color" content="#0f4c4a">
+<link rel="icon" href="../img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../img/favicon-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="../fonts.css">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="docs.css">
+</head>
+<body class="docs">
+<nav class="topbar" aria-label="site">
+  <a class="brand" href="../"><img src="../img/favicon.svg" alt="" width="22" height="22"> checkmeter</a>
+  <span class="seal">Inspection manual · v0.1</span>
+  <a href="../">Home</a>
+  <a href="https://github.com/Blackman99/checkmeter">GitHub</a>
+</nav>
+<div class="manual">
+<aside class="toc" aria-label="contents">
+  <p class="toc-h">Contents</p>
+  <ol>
+    <li><a href="#install">Install</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#findings">Findings</a></li>
+    <li><a href="#claude">Claude Code meter</a></li>
+    <li><a href="#guard">The guard</a></li>
+    <li><a href="#evidence">Evidence pack</a></li>
+    <li><a href="#config">Configuration</a></li>
+    <li><a href="#reference">Reference</a></li>
+    <li><a href="#method">How it computes</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ol>
+</aside>
+<main class="sheets">
+<header class="title">
+  <p class="kicker">checkmeter · inspection manual</p>
+  <h1>Checking the meter on an AI coding plan</h1>
+  <p>checkmeter reads the session files Codex and Claude Code already write, puts the vendor's usage meter next to the tokens those same files logged, and reports the readings that don't add up. It reads files and prints a report. It never sends anything anywhere.</p>
+</header>
+
+<section id="install">
+  <h2><span>§1</span> Install</h2>
+  <p>You need Node.js 18.18 or newer. There are no runtime dependencies.</p>
+  <pre class="term"><code><span class="c"># run straight from GitHub (builds once, then cached by npm)</span>
+npx github:Blackman99/checkmeter
+
+<span class="c"># or install the release tarball globally</span>
+npm install -g https://github.com/Blackman99/checkmeter/releases/download/v0.1.0/checkmeter-0.1.0.tgz
+checkmeter --version</code></pre>
+  <p>Not sure it'll find anything? <code>checkmeter --demo</code> builds a generated week of Codex and Claude Code files in a temp folder and runs the full report on it, so you can see every kind of finding before pointing it at your own files. Demo output is labelled <b>DEMO DATA</b> everywhere.</p>
+</section>
+
+<section id="usage">
+  <h2><span>§2</span> Usage</h2>
+  <p>With no arguments, checkmeter looks at the last 7 days:</p>
+  <pre class="term"><code>checkmeter                       <span class="c"># same as: checkmeter report --days 7</span>
+checkmeter --days 14 --harness codex
+checkmeter --since 2026-10-14
+checkmeter --json | jq '.findings[] | {kind, title}'</code></pre>
+  <p>The report has two parts. <b>Readings that don't add up</b> comes first: one block per finding, with the numbers and the <code>file:line</code> of the readings it is based on. Then <b>Where the meter went</b>: for each harness, the sessions that moved the 5-hour and weekly meters most, in meter points, with a short "why" (near context limit, fast tier, cache rebuilt after idle, subagent…). A last line says how many points no local session accounts for.</p>
+  <pre class="term"><code>READINGS THAT DON'T ADD UP  (7)
+ <span class="bad">✖ OFF-LEDGER</span>    codex · meter rose 11 pts (5h) and 4.0 pts (week) that no session on this machine explains
+                 between Tue 20 Oct 12:48 (13% of 5h) and Tue 20 Oct 16:41 (24% of 5h) local sessions logged
+                 33k weighted tokens, ≈ 0.4 pts at your baseline rate
+                 ↳ ~/.codex/sessions/2026/10/20/rollout-…8ce48940.jsonl:32 → rollout-…7d54b8ae.jsonl:3
+
+WHERE THE METER WENT  codex · meter points per session (5h / week)
+  session   project        started        5h pts wk pts  weighted  model         why
+  d1786bd7  code/api       Sun 18 10:22    100.0    7.0      4.0M  gpt-6.1-sol   meter ran 2.4× fast that day
+  81dca0e9  code/api       Tue 20 06:31     98.0    6.0      8.9M  gpt-6.1-sol   near context limit ×8 · comp…
+  not from any session on this machine      15.6    4.0</code></pre>
+  <p class="note">From <code>checkmeter --demo</code>: generated data, not a real account.</p>
+</section>
+
+<section id="findings">
+  <h2><span>§3</span> Findings</h2>
+  <p>Every finding compares the meter with itself. checkmeter never assumes a published limit, because the vendors don't publish one in tokens. Severity: <b class="bad">✖ flag</b> is worth asking about, <b class="warn">◆ review</b> is worth a look, <b>· note</b> is context.</p>
+  <dl class="defs">
+    <dt><span class="v bad">FAST METER</span></dt><dd>On one or more days the meter moved at least <code>--fast-ratio</code> (default 2) times your baseline rate, by at least 3 points. The finding prints the model mix and the share of priority/fast-tier requests on those days next to your baseline days, so "I switched to a bigger model" is easy to rule in or out.</dd>
+    <dt><span class="v bad">OFF-LEDGER</span></dt><dd>Between two readings in the same window the meter rose by points that the requests logged on this machine can't account for, even at that day's own rate. Fires at 3 points or more, at least 2.5 above what your usage explains. Typical causes: Codex cloud tasks, another computer on the same account, the desktop app, a workspace sharing the pool. Sometimes nothing you did.</dd>
+    <dt><span class="v stuck">STUCK RESET</span></dt><dd>A reading taken after the window's <code>resets_at</code> still shows the old percentage and the old reset time (10 minutes of grace for the 5-hour window, an hour for the week).</dd>
+    <dt><span class="v warn">PLAN CHANGED</span></dt><dd>The <code>plan_type</code> inside the readings switched. If you didn't change plans, the meter was applying another plan's limits in that span.</dd>
+    <dt><span class="v warn">METER DROP</span></dt><dd>The meter went down without a reset: a correction or a credit on the vendor side.</dd>
+    <dt><span class="v bad">CACHE TTL</span></dt><dd>Claude Code only. A client version that wrote the 1-hour prompt cache was followed by versions that wrote only the 5-minute cache. A 5-minute cache goes cold during any pause over 5 minutes and the next request pays to write the whole context again.</dd>
+    <dt><span class="v">LIMIT HIT</span></dt><dd>The client logged that a rate limit was reached, with the meter value at the time.</dd>
+    <dt><span class="v">NO BASELINE</span></dt><dd>Fewer than 3 days with enough work to say what "normal" is. FAST METER and OFF-LEDGER need a baseline, so they stay quiet until there is one.</dd>
+  </dl>
+</section>
+
+<section id="claude">
+  <h2><span>§4</span> Recording the Claude Code meter</h2>
+  <p>Codex writes its meter into every rollout file, so there is nothing to set up. Claude Code shows the meter to its status line (<code>rate_limits.five_hour</code> and <code>seven_day</code>) but doesn't keep it in the transcripts. <code>checkmeter record</code> is a status-line command that saves those readings to <code>~/.checkmeter/claude-meter.jsonl</code> and prints a short line of its own.</p>
+  <pre class="term"><code>checkmeter setup claude           <span class="c"># show the change to ~/.claude/settings.json</span>
+checkmeter setup claude --write   <span class="c"># apply it; the old file is kept as settings.json.checkmeter-backup-…</span></code></pre>
+  <p>If you already have a status line, setup keeps it: the new command is <code>checkmeter record --then '&lt;your old command&gt;'</code>, which runs your command with the same input and prints its output followed by <code>│ ⛽ 5h 24% · wk 41% · cache 5m</code>. A reading is only appended when it changed or 10 minutes passed, so the log stays small. Readings exist from the day you run setup; older Claude Code sessions show "before the meter was recorded".</p>
+</section>
+
+<section id="guard">
+  <h2><span>§5</span> The guard</h2>
+  <p><code>checkmeter guard</code> is meant to run as a PreToolUse hook. It reads the newest meter reading (the newest Codex rollout, or the Claude Code meter log) and exits 2 with a message on stderr when a meter is at or over the line. Both clients treat exit 2 as "block this tool call and show the reason to the model", so the agent stops and reports instead of getting cut off halfway through an edit.</p>
+  <pre class="term"><code>checkmeter setup guard codex      <span class="c"># prints the [[hooks.PreToolUse]] block for ~/.codex/config.toml</span>
+checkmeter setup guard claude     <span class="c"># prints the hooks.PreToolUse block for ~/.claude/settings.json</span>
+checkmeter setup guard codex --max-5h 80 --max-week 90</code></pre>
+  <p>Readings older than 6 hours, or from a window that has already reset, never block. The guard exits 0 when it finds no reading at all.</p>
+</section>
+
+<section id="evidence">
+  <h2><span>§6</span> Evidence pack</h2>
+  <p><code>checkmeter evidence -o meter-evidence.md</code> writes the flagged findings as a markdown document you can attach to a support ticket: the period in UTC, a summary table, then for each finding its details, every reading it rests on (UTC time, local time, value, reset time, plan, <code>file:line</code>) and one <code>sed -n 'Np' file | jq</code> line per reading so the person reading it can check each number in the raw file. It contains no prompts, responses or code. It's written in the first person because you're the one sending it.</p>
+</section>
+
+<section id="config">
+  <h2><span>§7</span> Configuration</h2>
+  <p>There is no config file. Paths follow the clients' own conventions:</p>
+  <table>
+    <thead><tr><th>what</th><th>default</th><th>override</th></tr></thead>
+    <tbody>
+      <tr><td>Codex sessions</td><td><code>~/.codex/sessions</code>, <code>~/.codex/archived_sessions</code></td><td><code>$CODEX_HOME</code>, <code>--codex-home</code></td></tr>
+      <tr><td>Claude Code transcripts</td><td><code>~/.claude/projects/**.jsonl</code> (subagents included)</td><td><code>$CLAUDE_CONFIG_DIR</code>, <code>--claude-dir</code></td></tr>
+      <tr><td>Claude Code meter log</td><td><code>~/.checkmeter/claude-meter.jsonl</code></td><td><code>$CHECKMETER_HOME</code>, <code>--meter-log</code></td></tr>
+      <tr><td>home folder for all of the above</td><td>your home</td><td><code>--home</code></td></tr>
+      <tr><td>colour</td><td>on for a terminal</td><td><code>NO_COLOR</code>, <code>--no-color</code>, <code>FORCE_COLOR</code></td></tr>
+    </tbody>
+  </table>
+  <p>Compressed rollouts (<code>.jsonl.zst</code>) are read when a <code>zstd</code> binary is on the PATH and skipped with a note otherwise.</p>
+</section>
+
+<section id="reference">
+  <h2><span>§8</span> Reference</h2>
+  <table class="ref">
+    <thead><tr><th>command</th><th>does</th></tr></thead>
+    <tbody>
+      <tr><td><code>checkmeter [report]</code></td><td>the report (default command)</td></tr>
+      <tr><td><code>checkmeter evidence [-o FILE]</code></td><td>flagged readings as markdown; stdout without <code>-o</code></td></tr>
+      <tr><td><code>checkmeter setup claude [--write]</code></td><td>wire <code>checkmeter record</code> into the Claude Code status line</td></tr>
+      <tr><td><code>checkmeter setup guard claude|codex</code></td><td>print the hook block for the guard</td></tr>
+      <tr><td><code>checkmeter guard</code></td><td>the hook: exit 2 over the line, 0 otherwise</td></tr>
+      <tr><td><code>checkmeter record [--then CMD]</code></td><td>status-line recorder; reads the status-line JSON on stdin</td></tr>
+      <tr><td><code>checkmeter --demo</code></td><td>any command above on a generated demo home</td></tr>
+    </tbody>
+  </table>
+  <table class="ref">
+    <thead><tr><th>flag</th><th>default</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>--days N</code></td><td>7</td><td>look back N days (by file modification time and event time)</td></tr>
+      <tr><td><code>--since DATE</code></td><td></td><td>start at a date, <code>YYYY-MM-DD</code>; overrides <code>--days</code></td></tr>
+      <tr><td><code>--harness NAME</code></td><td>all</td><td><code>codex</code>, <code>claude</code> or <code>all</code></td></tr>
+      <tr><td><code>--top N</code></td><td>12</td><td>sessions listed per harness</td></tr>
+      <tr><td><code>--json</code></td><td></td><td>the whole report as JSON (<code>tool</code>, <code>findings</code>, <code>series</code>, <code>sessions</code>…)</td></tr>
+      <tr><td><code>--fast-ratio N</code></td><td>2</td><td>how many times your baseline counts as a fast meter</td></tr>
+      <tr><td><code>--max-5h N</code> / <code>--max-week N</code></td><td>90 / 95</td><td>guard lines, in percent</td></tr>
+      <tr><td><code>--no-color</code></td><td></td><td>plain text</td></tr>
+    </tbody>
+  </table>
+  <p>Exit codes: <code>0</code> report printed (findings or not) · <code>2</code> guard blocked · <code>64</code> usage error, with a suggestion when a command or flag looks like a typo.</p>
+</section>
+
+<section id="method">
+  <h2><span>§9</span> How it computes</h2>
+  <ul class="limits">
+    <li><b>Readings.</b> Codex: <code>rate_limits.primary</code> (300-minute window) and <code>secondary</code> (10080-minute window) of each <code>token_count</code> event, with <code>used_percent</code>, <code>resets_at</code>, <code>plan_type</code>. Claude Code: the recorded status-line snapshots.</li>
+    <li><b>Weighted tokens.</b> Requests count at API price ratios so cached input doesn't look as expensive as new input. Codex: uncached input 1, cached input 0.1, output 8. Claude: input 1, cache read 0.1, 5-minute cache write 1.25, 1-hour cache write 2, output 5.</li>
+    <li><b>Duplicates.</b> Codex subagent rollouts replay their parent's history; Claude Code writes a streamed message several times. Each request is counted once, keyed by its own identity, not by file.</li>
+    <li><b>Intervals.</b> Consecutive readings of one window form an interval; a reset (new <code>resets_at</code>, value drops) starts a new one. Each interval's points are shared among the sessions active in it, in proportion to their weighted tokens.</li>
+    <li><b>Baseline.</b> The median over days with at least 0.2M weighted tokens and 1 point of movement, of points per million weighted tokens. At least 3 such days are needed.</li>
+  </ul>
+</section>
+
+<section id="faq">
+  <h2><span>§10</span> FAQ</h2>
+  <dl class="faq">
+    <dt>Does it upload anything?</dt><dd>No. There is no network code in checkmeter. The browser analyser on the home page runs in the tab; nothing leaves it.</dd>
+    <dt>Is a finding proof that I was overcharged?</dt><dd>No. It's a reading that doesn't match your own history on this machine. Usage from other machines and cloud tasks is invisible here and shows up as OFF-LEDGER. The evidence pack is written so someone can check it, not as an accusation.</dd>
+    <dt>Why are my Claude Code sessions showing "—"?</dt><dd>The Claude Code meter is only recorded from the day you run <code>checkmeter setup claude</code>. Token totals are still shown for older sessions.</dd>
+    <dt>How precise is it?</dt><dd>Codex logs whole percents, so one reading is ±0.5 points. The thresholds (3 points, 2× baseline) are set well above that.</dd>
+    <dt>How is this different from ccusage or a token counter?</dt><dd>Token counters add up what you spent. checkmeter is about the other side: the vendor's meter. It checks the meter readings against your spending and says which ones don't fit.</dd>
+    <dt>Does it work with OpenCode, Gemini CLI, Cursor…?</dt><dd>Not yet. They don't log a vendor meter in a way checkmeter can read today. See the <a href="https://github.com/Blackman99/checkmeter/blob/main/ROADMAP.md">roadmap</a>.</dd>
+    <dt>It got something wrong.</dt><dd>Please <a href="https://github.com/Blackman99/checkmeter/issues/new?template=wrong-reading.md">open an issue</a> with the finding and, if you can, the two lines it points to (meter readings only, no prompts).</dd>
+  </dl>
+</section>
+</main>
+</div>
+<footer class="foot"><div class="plate" aria-hidden="true"></div><p>checkmeter is MIT licensed · <a href="https://github.com/Blackman99/checkmeter">source</a> · <a href="../">home</a></p><p class="small">Not affiliated with OpenAI, Anthropic or any weights &amp; measures office.</p></footer>
+</body>
+</html>

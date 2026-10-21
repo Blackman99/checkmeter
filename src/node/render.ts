@@ -25,7 +25,8 @@ function projName(p: string | undefined): string {
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function fmtShort(t: number): string { const d = new Date(t); return `${WD[d.getDay()]} ${String(d.getDate()).padStart(2, ' ')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 
-function wrap(text: string, width: number, indent: string): string[] {
+/** word-wrap to the terminal; `style` is applied per line so a colour never bleeds into, or drops off, a continuation line */
+function wrap(text: string, width: number, indent: string, style?: (s: string) => string): string[] {
   const lead = (text.match(/^ */) || [''])[0];
   const words = text.slice(lead.length).split(' ');
   words[0] = lead + words[0];
@@ -35,7 +36,7 @@ function wrap(text: string, width: number, indent: string): string[] {
     if (cur && vis(cur) + 1 + vis(w) > width) { lines.push(cur); cur = w; } else cur = cur ? `${cur} ${w}` : w;
   }
   if (cur) lines.push(cur);
-  return lines.map((l, i) => (i === 0 ? l : indent + l));
+  return lines.map((l, i) => (i === 0 ? '' : indent) + (style ? style(l) : l));
 }
 
 /** rollout-2026-10-17T10-02-00-034814c2-….jsonl → rollout-…034814c2.jsonl; keeps the folder so it stays findable */
@@ -81,9 +82,9 @@ export function renderReport(r: Report, o: RenderOptions): string {
     const labC = f.severity === 'flag' ? P.flag(padEnd(lab, labelW)) : f.severity === 'review' ? P.review(padEnd(lab, labelW)) : P.dim(padEnd(lab, labelW));
     const title = `${P.dim(f.harness + ' ·')} ${f.severity === 'note' ? P.dim(f.title) : f.title}`;
     out.push(...wrap(` ${sym} ${labC}${title}`, W, indent));
-    for (const d of f.detail) out.push(...wrap(indent + P.dim(d), W, indent));
+    for (const d of f.detail) out.push(...wrap(indent + d, W, indent, P.dim));
     const ref = fileRef(f);
-    if (ref && f.severity !== 'note') out.push(...wrap(indent + P.dim('↳ ' + ref), W, indent + '  '));
+    if (ref && f.severity !== 'note') out.push(...wrap(indent + '↳ ' + ref, W, indent + '  ', P.dim));
   }
   if (flagged.length || notes.length) out.push('');
 
@@ -99,7 +100,8 @@ export function renderReport(r: Report, o: RenderOptions): string {
     if (rows.length > shown.length) {
       const rest = rows.slice(shown.length);
       const d5 = rest.reduce((a, s) => a + s.d5h, 0), dw = rest.reduce((a, s) => a + s.dWeek, 0), wt = rest.reduce((a, s) => a + s.weighted, 0);
-      out.push(P.dim(`  ${padEnd(`+${rest.length} more`, 39)}${padStart(hasMeter ? d5.toFixed(1) : '', 7)}${padStart(hasMeter ? dw.toFixed(1) : '', 7)}${padStart(fmtTok(wt), 10)}  ${P.dim('--top ' + rows.length + ' to list all')}`));
+      const anyMetered = hasMeter && rest.some((s) => s.metered !== false);
+      out.push(P.dim(`  ${padEnd(`+${rest.length} more`, 39)}${padStart(!hasMeter ? '' : anyMetered ? d5.toFixed(1) : '—', 7)}${padStart(!hasMeter ? '' : anyMetered ? dw.toFixed(1) : '—', 7)}${padStart(fmtTok(wt), 10)}  ${P.dim('--top ' + rows.length + ' to list all')}`));
     }
     if (hasMeter) {
       const s5 = r.series.filter((s) => s.harness === h && s.window === '5h').reduce((a, s) => a + s.unexplained, 0);
