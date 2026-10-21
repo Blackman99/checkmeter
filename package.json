@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
     "build:web": "esbuild src/core/browser.ts --bundle --format=esm --minify --target=es2020 --outfile=site/js/analyse.js",
-    "test": "npm run build && tsc -p tsconfig.test.json && node --test build-test/test/",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test build-test/test/core.test.js build-test/test/cli.test.js",
     "lint": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm run build"
   },
