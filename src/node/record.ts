@@ -1,7 +1,9 @@
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { MeterSnapshot } from '../core/claude.js';
+import type { Reading } from '../core/types.js';
+import { paceFor, paceShort } from '../core/pace.js';
 
 /**
  * Claude Code status-line recorder. Claude Code pipes the session JSON to stdin on every
@@ -42,6 +44,13 @@ export function record(stdin: string, logPath: string, opts: { then?: string; qu
   if (snap.spend_limit) bits.push(`spend ${p(snap.spend_limit.used_percentage)}`);
   if (snap.fast) bits.push('fast');
   if (snap.ttl === '5m') bits.push('cache 5m');
+  // the forecast only speaks up when this pace empties the 5-hour window before it resets
+  if (snap.five_hour) {
+    try {
+      const out = paceShort(paceFor(fiveHourTail(logPath, snap), snap.t), snap.t);
+      if (out) bits.push(out);
+    } catch { /* never break the status line */ }
+  }
   const mine = bits.length ? `⛽ ${bits.join(' · ')}` : '⛽ meter: waiting for the first reply';
   return prefix ? `${prefix} │ ${mine}\n` : `${mine}\n`;
 }
@@ -63,4 +72,30 @@ function changed(logPath: string, s: MeterSnapshot): boolean {
     }
   } catch { return true; }
   return true;
+}
+
+/** 5-hour readings from the last ~6 hours of the log (read from the end, so a long log stays cheap), plus the one just taken. */
+function fiveHourTail(logPath: string, s: MeterSnapshot): Reading[] {
+  const out: Reading[] = [];
+  const push = (m: MeterSnapshot) => {
+    if (!m.five_hour || typeof m.t !== 'number') return;
+    out.push({ harness: 'claude', t: m.t, window: '5h', usedPercent: m.five_hour.used_percentage, resetsAt: typeof m.five_hour.resets_at === 'number' ? m.five_hour.resets_at * 1000 : undefined, file: logPath, line: 0 });
+  };
+  if (existsSync(logPath)) {
+    const fd = openSync(logPath, 'r');
+    try {
+      const size = fstatSync(fd).size;
+      const len = Math.min(size, 256 * 1024);
+      const buf = Buffer.alloc(len);
+      readSync(fd, buf, 0, len, size - len);
+      const lines = buf.toString('utf8').split('\n');
+      if (len < size) lines.shift(); // first line is probably cut
+      for (const l of lines) {
+        if (!l.trim()) continue;
+        try { const m = JSON.parse(l) as MeterSnapshot; if (m.t >= s.t - 6 * 3600_000) push(m); } catch { /* skip a torn line */ }
+      }
+    } finally { closeSync(fd); }
+  }
+  push(s);
+  return out;
 }

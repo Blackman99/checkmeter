@@ -129,14 +129,15 @@ export function buildDemo(home: string, now = Date.now()): DemoInfo {
   const kreqs: KReq[] = [];
   const kfiles = new Map<string, { path: string; reqs: KReq[] }>();
   const cproj = join(home, '.claude', 'projects', '-Users-demo-code-site');
-  const planClaude = (start: number, version: string, o: { turns: number; ttl: '1h' | '5m'; idleEvery?: number; fast?: boolean; parent?: string }) => {
+  const planClaude = (start: number, version: string, o: { turns: number; ttl: '1h' | '5m'; idleEvery?: number; fast?: boolean; parent?: string; ctx0?: number; every?: [number, number] }) => {
     const sid = o.parent ?? uuid(r);
     const path = o.parent ? join(cproj, o.parent, 'subagents', `agent-${uuid(r).slice(0, 8)}.jsonl`) : join(cproj, `${sid}.jsonl`);
     const f = { path, reqs: [] as KReq[] }; kfiles.set(path, f);
-    let t = start; let ctx = 16_000; let warm = false;
+    let t = start; let ctx = o.ctx0 ?? 16_000; let warm = false;
+    const [ev0, ev1] = o.every ?? [40, 120];
     for (let i = 0; i < o.turns; i++) {
       const idle = !!o.idleEvery && i > 0 && i % o.idleEvery === 0;
-      t += idle ? (12 + r() * 25) * MIN : (40 + r() * 80) * 1000;
+      t += idle ? (12 + r() * 25) * MIN : (ev0 + r() * (ev1 - ev0)) * 1000;
       if (t > now - 3 * MIN) break;
       ctx += 1500 + r() * 2400;
       const cold = !warm || (idle && o.ttl === '5m') || (idle && t > 0 && false);
@@ -159,7 +160,10 @@ export function buildDemo(home: string, now = Date.now()): DemoInfo {
   planClaude(D(3, 10, 0), '2.1.303', { turns: 90, ttl: '5m', idleEvery: 8 });
   const main = planClaude(D(2, 14, 0), '2.1.304', { turns: 70, ttl: '5m', idleEvery: 10 });
   planClaude(D(2, 14, 20), '2.1.304', { turns: 30, ttl: '5m', fast: true, parent: main });
-  planClaude(Math.min(D(0, 8, 30), now - 2 * HOUR), '2.1.305', { turns: 45, ttl: '5m', idleEvery: 12 });
+  // today's session is still going and it is a heavy one: a big repo loaded into a long context, a turn
+  // every half minute or so. Nothing about it is wrong, the meter matches the tokens, but at this rate the
+  // 5-hour window runs out well before it resets. That is the PACE forecast's planted case.
+  planClaude(now - 110 * MIN, '2.1.305', { turns: 400, ttl: '5m', ctx0: 120_000, every: [40, 90] });
   // the Claude meter (recorded by the status line from day 4 on, after `checkmeter setup claude`)
   kreqs.sort((a, b) => a.t - b.t);
   const cm = { u5: 0, r5: 0, uw: 6, rw: D(6, 10) + 7 * DAY };

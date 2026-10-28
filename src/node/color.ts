@@ -13,7 +13,8 @@ export function paint(on: boolean): Paint {
   };
 }
 export function colorWanted(flag: boolean | undefined, stream: NodeJS.WriteStream): boolean {
-  if (flag === false) return false;
+  // an explicit flag wins over the environment (no-color.org lets a flag override NO_COLOR)
+  if (flag !== undefined) return flag;
   if (process.env.NO_COLOR) return false;
   if (process.env.FORCE_COLOR && process.env.FORCE_COLOR !== '0') return true;
   return !!stream.isTTY;

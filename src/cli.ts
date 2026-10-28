@@ -30,6 +30,7 @@ Options
   --top N            sessions to list per harness (default 12)
   --json             machine-readable report
   --no-color         plain text (NO_COLOR is honoured too)
+  --color            colour even when piped (for a GIF or a pager)
   --codex-home DIR   Codex home (default $CODEX_HOME or ~/.codex)
   --claude-dir DIR   Claude Code config dir (default $CLAUDE_CONFIG_DIR or ~/.claude)
   --meter-log FILE   recorded Claude Code meter (default ~/.checkmeter/claude-meter.jsonl)

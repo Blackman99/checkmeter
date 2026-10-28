@@ -8,9 +8,13 @@
 - `evidence` (support-ticket markdown), `guard` (PreToolUse hook) and `setup` for both clients, `--demo`, `--json`.
 - In-browser analyser on the home page (same code, no upload).
 
+## v0.2 (on main, unreleased)
+
+- **Pace forecast.** A PACE section in the report, `pace` in `--json` and the browser analyser: each open 5-hour and weekly window is on pace, runs out before its reset (with the time), idle, at the limit, or too early to call. The 5-hour rate is the last hour's rise; the week's is points per day since the window opened. The recorder's status line adds `· out HH:MM` only when the 5-hour window runs out early.
+- `--color` now forces colour into a pipe even with `NO_COLOR` set (it was ignored when stdout wasn't a terminal).
+
 ## Next
 
-- **v0.2 pace forecast.** "At this session's rate the 5-hour window runs out at 15:40", in the report and in the recorder's status line.
 - **v0.3 more clients.** OpenCode and Gemini CLI, as soon as either writes a vendor meter that can be read locally.
 - **v0.4 more than one machine.** `checkmeter export` on each laptop, `checkmeter merge` on one, so OFF-LEDGER can tell "your other machine" from "nobody you know".
 - **v0.5 Claude `/usage` import.** Paste or pipe the `/usage` screen to backfill the Claude Code meter for days before `setup claude`.

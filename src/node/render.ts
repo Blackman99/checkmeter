@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 import type { Finding, Report, SessionRow } from '../core/analyse.js';
 import { fmtPct, fmtTok, fmtWhen } from '../core/analyse.js';
+import { paceLine } from '../core/pace.js';
 import type { Paint } from './color.js';
 import { padEnd, padStart, vis } from './color.js';
 
@@ -87,6 +88,18 @@ export function renderReport(r: Report, o: RenderOptions): string {
     if (ref && f.severity !== 'note') out.push(...wrap(indent + '↳ ' + ref, W, indent + '  ', P.dim));
   }
   if (flagged.length || notes.length) out.push('');
+
+  if (r.pace?.length) {
+    out.push(P.bold(`PACE  ${P.dim("where each open window is heading at the rate you're going now")}`));
+    const pIndent = ' '.repeat(15);
+    for (const p of r.pace) {
+      const pl = paceLine(p, r.now);
+      const lead = `  ${padEnd(P.bold(p.harness), 7)}${padEnd(p.window === '5h' ? '5h' : 'week', 6)}`;
+      const verdict = p.state === 'runs-out' || p.state === 'at-limit' ? P.flag(pl.verdict) : p.state === 'on-pace' ? pl.verdict : P.dim(pl.verdict);
+      out.push(...wrap(`${lead}${pl.now} now ${P.dim('·')} ${pl.rate ? pl.rate + ' ' + P.dim('·') + ' ' : ''}${verdict}`, W, pIndent));
+    }
+    out.push('');
+  }
 
   for (const h of ['codex', 'claude'] as const) {
     const rows = r.sessions.filter((s) => s.harness === h);
