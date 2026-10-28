@@ -119,9 +119,11 @@ checkmeter setup claude --write   <span class="c"># apply it; the old file is ke
   <h3 id="pace">Pace forecast</h3>
   <p>The report's <b>PACE</b> section reads each open window forward: at the rate you're going now, when does it reach 100%, and is that before it resets? It is in <code>--json</code> as <code>pace</code> and in the analyser on the home page too.</p>
   <pre class="term"><code><b>PACE</b>  <span class="c">where each open window is heading at the rate you're going now</span>
-  <b>claude</b> 5h    50.3% now <span class="c">·</span> 32 pts/h since 09:03 <span class="c">·</span> runs out ≈ 11:37, 1 h 40 min before the reset at 13:17
-  <b>claude</b> week  36.6% now <span class="c">·</span> 7.0 pts/day since Sat 24 Oct <span class="c">·</span> on pace for 44% at the reset (Thu 29 Oct 10:00)
-  <b>codex</b>  5h    6% now <span class="c">·</span> idle since 01:36; the window resets at 06:21</code></pre>
+  <b>codex</b>  5h    6% now <span class="c">·</span> idle since 01:36; the window resets at 06:21
+  <b>claude</b> 5h    50.3% now <span class="c">·</span> 32 pts/h since 09:03 <span class="c">·</span>
+               runs out ≈ 11:37, 1 h 40 min before the reset at 13:17
+  <b>claude</b> week  36.6% now <span class="c">·</span> 7.0 pts/day since Sat 24 Oct <span class="c">·</span>
+               on pace for 44% at the reset (Thu 29 Oct 10:00)</code></pre>
   <ul class="limits">
     <li><b>5-hour window.</b> The rise over the last hour of readings in the current window (or since the window opened, if that's sooner), idle minutes included. With no reading for 30 minutes the window is <i>idle</i> and gets no forecast; under 10 minutes of readings is <i>too early to call</i>.</li>
     <li><b>Week.</b> Points per calendar day since the first reading in the window, because a one-hour rate would assume you code around the clock. It needs 6 hours of readings.</li>

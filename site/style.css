@@ -113,7 +113,7 @@ main { max-width: 980px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 32px) 40px;
 .rline.bad, .rline.warn, .rline.stuck { padding-left: 1.4em; text-indent: -1.4em; margin-top: .5em; }
 .rline.gap { height: .8em; }
 .rline.bad { color: var(--bad); } .rline.warn { color: var(--gas); } .rline.dim { color: var(--steel-lo); } .rline.stuck { color: var(--stuck); } .rline.head { color: var(--steel-hi); font-weight: 700; }
-.rline.p { white-space: pre-wrap; margin-top: 0; padding-left: 0; text-indent: 0; }
+.rline.p { white-space: pre-wrap; margin-top: 0; padding-left: 15ch; text-indent: -15ch; }
 
 .foot { margin-top: 30px; background: var(--enamel-deep); padding-bottom: 26px; text-align: center; }
 .foot p { margin: 18px 16px 0; }
