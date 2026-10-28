@@ -187,6 +187,15 @@ async function handle(files) {
     lines.push(`<span class="rline ${tone}">${f.severity === 'flag' ? '\u2716' : f.severity === 'review' ? '\u25c6' : '\u00b7'} ${esc(LABEL[f.kind] || f.kind)}  ${esc(f.harness)} \u00b7 ${esc(f.title)}</span>`);
     for (const d of f.detail) lines.push(`<span class="rline dim d">${esc(d)}</span>`);
   }
+  if (rep.pace && rep.pace.length) {
+    // in the tab "now" is the newest line in the files, so the forecast is as of that moment
+    lines.push('', `<span class="rline head">pace \u00b7 at the rate these files were going at ${esc(new Date(now).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</span>`);
+    for (const p of rep.pace) {
+      const pl = lib.paceLine(p, now);
+      const tone = p.state === 'runs-out' || p.state === 'at-limit' ? 'bad' : p.state === 'on-pace' ? '' : 'dim';
+      lines.push(`<span class="rline p ${tone}">  ${esc(p.harness.padEnd(7))}${esc((p.window === '5h' ? '5h' : 'week').padEnd(6))}${esc(pl.now)} \u00b7 ${pl.rate ? esc(pl.rate) + ' \u00b7 ' : ''}${esc(pl.verdict)}</span>`);
+    }
+  }
   const top = rep.sessions.slice(0, 8);
   if (top.length) {
     lines.push('', '<span class="rline head">where the meter went · session, 5h pts, week pts, weighted tokens, model, why</span>');

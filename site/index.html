@@ -192,7 +192,16 @@ sed -n '32p' ~/.codex/sessions/2026/10/20/rollout-…8ce48940.jsonl | jq -c '{ti
   <section class="door" id="pump-05">
     <span class="pumpno">PUMP 05</span>
     <h2>A guard before the meter runs dry</h2>
-    <p>Hitting the 5-hour wall halfway through a refactor is the expensive way to find out. <code>checkmeter guard</code> reads the newest reading and exits 2 with a plain message once you cross your line (90% of the 5-hour window, 95% of the week by default), so the agent stops cleanly instead of mid-edit.</p>
+    <p>Hitting the 5-hour wall halfway through a refactor is the expensive way to find out, so the report reads the gauge forward first. Its <b>PACE</b> lines take the last hour of readings for the 5-hour window (points per calendar day for the week) and say when the window empties at that rate, or where it lands at the reset. The status line stays quiet until the answer is "before the reset", then adds <code>out 11:37</code>.</p>
+    <pre class="term"><code><b>PACE</b>  <span class="c">where each open window is heading at the rate you're going now</span>
+  <b>codex</b>  week  46% now <span class="c">·</span> 4.9 pts/day since Thu 22 Oct <span class="c">·</span> on pace for 52% at the reset (Thu 29 Oct 08:00)
+  <b>claude</b> 5h    50.3% now <span class="c">·</span> 32 pts/h since 09:03 <span class="c">·</span> <span class="r">runs out ≈ 11:37, 1 h 40 min before the reset at 13:17</span>
+  <b>claude</b> week  36.6% now <span class="c">·</span> 7.0 pts/day since Sat 24 Oct <span class="c">·</span> on pace for 44% at the reset (Thu 29 Oct 10:00)
+
+<span class="c"># Claude Code's status line, once that's true</span>
+⛽ 5h 50% · wk 37% · cache 5m · <span class="r">out 11:37</span></code></pre>
+    <p class="small">From <code>checkmeter --demo</code>: generated data, not a real account. A forecast is arithmetic on your own readings, not a promise from the vendor.</p>
+    <p>When you'd rather the agent stopped by itself, <code>checkmeter guard</code> reads the newest reading and exits 2 with a plain message once you cross your line (90% of the 5-hour window, 95% of the week by default), so the agent stops cleanly instead of mid-edit.</p>
     <pre class="term"><code><span class="c"># print the hook block for your client, paste it where it says</span>
 checkmeter setup guard claude     <span class="c"># → ~/.claude/settings.json  hooks.PreToolUse</span>
 checkmeter setup guard codex      <span class="c"># → ~/.codex/config.toml     [[hooks.PreToolUse]]</span>

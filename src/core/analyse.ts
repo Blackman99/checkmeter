@@ -1,4 +1,6 @@
 import type { Harness, ParsedSource, Reading, SessionInfo, UsageEvent, WindowKind } from './types.js';
+import type { Pace } from './pace.js';
+import { paces } from './pace.js';
 
 export const MTOK = 1_000_000;
 const MIN = 60_000;
@@ -104,6 +106,8 @@ export interface Report {
   series: SeriesSummary[];
   findings: Finding[];
   sessions: SessionRow[];
+  /** where each open window is heading at the current rate (v0.2) */
+  pace: Pace[];
   intervals?: Interval[];
 }
 
@@ -446,7 +450,7 @@ export function analyse(input: ParsedSource, opts: AnalyseOptions): Report {
     plans: [...new Set(allReadings.filter((r) => r.harness === h && r.plan).map((r) => r.plan!))],
   }));
 
-  return { tool: 'checkmeter', version: opts.version ?? '0.0.0', generatedAt: now, since, now, harnesses, series, findings, sessions, ...(opts.keepIntervals ? { intervals: intervalsOut } : {}) };
+  return { tool: 'checkmeter', version: opts.version ?? '0.0.0', generatedAt: now, since, now, harnesses, series, findings, sessions, pace: paces(allReadings, now), ...(opts.keepIntervals ? { intervals: intervalsOut } : {}) };
 }
 
 function sessionCauses(ev: UsageEvent[], r: SessionRow, info: SessionInfo | undefined, prio: number): string[] {

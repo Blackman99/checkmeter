@@ -11,6 +11,9 @@ import { buildDemo } from '../src/node/demo.js';
 import { scan } from '../src/node/scan.js';
 import { renderEvidence } from '../src/node/evidence.js';
 import { record } from '../src/node/record.js';
+import { paceFor, paceLine } from '../src/core/pace.js';
+import { renderReport } from '../src/node/render.js';
+import { paint, colorWanted } from '../src/node/color.js';
 import { guardCheck, latestReadings } from '../src/node/guard.js';
 import { planClaudeSetup, applySetup, guardSnippet } from '../src/node/setup.js';
 
@@ -178,4 +181,82 @@ test('mergeSources keeps everything', () => {
   const a = parseClaudeMeterLog('{"t":1,"five_hour":{"used_percentage":1}}', 'a');
   const b = parseClaudeMeterLog('{"t":2,"five_hour":{"used_percentage":2}}', 'b');
   assert.equal(mergeSources([a, b]).readings.length, 2);
+});
+
+test('pace: the demo\'s live Claude session runs the 5-hour window out before it resets', () => {
+  const { report } = demoReport();
+  const c5 = report.pace.find((p) => p.harness === 'claude' && p.window === '5h');
+  assert.ok(c5, 'a 5h forecast for claude');
+  assert.equal(c5!.state, 'runs-out');
+  assert.ok(c5!.outAt! < c5!.resetsAt!, 'out before the reset');
+  assert.ok(c5!.earlyMin! >= 30, `at least half an hour early, got ${c5!.earlyMin}`);
+  assert.ok(c5!.outAt! > NOW, 'still ahead of now');
+  const cw = report.pace.find((p) => p.harness === 'claude' && p.window === 'week');
+  assert.equal(cw?.state, 'on-pace', 'the weekly window is fine');
+  assert.ok(!report.pace.some((p) => p.harness === 'codex' && p.state === 'runs-out'), 'codex is not running out');
+  const txt = renderReport(report, { width: 120, top: 12, days: 7, paint: paint(false), demo: true });
+  assert.match(txt, /^PACE /m);
+  assert.match(txt, /claude 5h .* runs out ≈ \d\d:\d\d, .* before the reset at/);
+});
+
+test('pace: rate over the last hour, idle, rolled-over and weekly projections', () => {
+  const now = Date.parse('2026-10-28T10:00:00');
+  const H = 3600_000;
+  const r = (t: number, used: number, resetsAt: number, window: '5h' | 'week' = '5h') => ({ harness: 'claude' as const, t, window, usedPercent: used, resetsAt, file: 'f', line: 1 });
+  const reset = now + 3 * H;
+  // 20% → 50% over the last hour: 30 pts/h, 50 pts left → out in 1 h 40 min, 1 h 20 min before the reset
+  const p = paceFor([r(now - 2 * H, 5, reset), r(now - H, 20, reset), r(now - 30 * 60_000, 35, reset), r(now, 50, reset)], now)!;
+  assert.equal(p.state, 'runs-out');
+  assert.equal(Math.round(p.rate!), 30);
+  assert.equal(Math.round(p.earlyMin!), 80);
+  assert.match(paceLine(p, now).verdict, /^runs out ≈ 11:40, 1 h 20 min before the reset at 13:00$/);
+  // a slow hour: on pace, projected to the reset
+  const slow = paceFor([r(now - H, 40, reset), r(now, 45, reset)], now)!;
+  assert.equal(slow.state, 'on-pace');
+  assert.equal(Math.round(slow.atReset!), 60);
+  // nothing for 40 minutes: idle, no forecast
+  assert.equal(paceFor([r(now - 2 * H, 10, reset), r(now - 40 * 60_000, 30, reset)], now)!.state, 'idle');
+  // the window already reset: nothing to say about the old one
+  assert.equal(paceFor([r(now - 2 * H, 10, now - 60_000), r(now - 10 * 60_000, 30, now - 60_000)], now), undefined);
+  // an older window with a different reset time does not count towards this one's rate
+  const fresh = paceFor([r(now - 3 * H, 90, now - 2 * H), r(now - 20 * 60_000, 2, reset), r(now, 6, reset)], now)!;
+  assert.equal(Math.round(fresh.rate!), 12);
+  // week: points per calendar day since the window opened
+  const D = 24 * H; const wreset = now + 2 * D;
+  const w = paceFor([r(wreset - 7 * D, 0, wreset, 'week'), r(now - D, 40, wreset, 'week'), r(now, 50, wreset, 'week')], now)!;
+  assert.equal(w.state, 'on-pace');
+  assert.equal(Math.round(w.rate!), 10);
+  assert.equal(Math.round(w.atReset!), 70);
+});
+
+test('record: the status line says when this pace runs the 5-hour window out', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cm-pace-'));
+  const log = join(dir, 'claude-meter.jsonl');
+  const now = Date.parse('2026-10-28T10:00:00');
+  const reset = Math.round((now + 3 * 3600_000) / 1000);
+  const snap = (t: number, u: number) => JSON.stringify({ t, session: 's1', five_hour: { used_percentage: u, resets_at: reset }, seven_day: { used_percentage: 30, resets_at: reset + 86400 } });
+  writeFileSync(log, [snap(now - 3600_000, 20), snap(now - 1800_000, 35)].join('\n') + '\n');
+  const input = JSON.stringify({ session_id: 's1', rate_limits: { five_hour: { used_percentage: 50, resets_at: reset }, seven_day: { used_percentage: 30, resets_at: reset + 86400 } } });
+  assert.equal(record(input, log, { now }), '⛽ 5h 50% · wk 30% · out 11:40\n');
+  // a calm hour keeps the line as it was
+  writeFileSync(log, snap(now - 3600_000, 45) + '\n');
+  assert.equal(record(input, log, { now }), '⛽ 5h 50% · wk 30%\n');
+});
+
+test('--color and --no-color win over the environment and the TTY check', () => {
+  const pipe = { isTTY: false } as NodeJS.WriteStream;
+  const tty = { isTTY: true } as NodeJS.WriteStream;
+  const saved = { NO_COLOR: process.env.NO_COLOR, FORCE_COLOR: process.env.FORCE_COLOR };
+  try {
+    process.env.NO_COLOR = '1'; delete process.env.FORCE_COLOR;
+    assert.equal(colorWanted(true, pipe), true, '--color forces colour into a pipe even with NO_COLOR set');
+    assert.equal(colorWanted(undefined, tty), false, 'NO_COLOR is honoured without a flag');
+    delete process.env.NO_COLOR;
+    assert.equal(colorWanted(false, tty), false);
+    assert.equal(colorWanted(undefined, pipe), false);
+    process.env.FORCE_COLOR = '1';
+    assert.equal(colorWanted(undefined, pipe), true);
+  } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
 });

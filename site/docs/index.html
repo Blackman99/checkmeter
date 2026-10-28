@@ -42,7 +42,7 @@
     <li><a href="#usage">Usage</a></li>
     <li><a href="#findings">Findings</a></li>
     <li><a href="#claude">Claude Code meter</a></li>
-    <li><a href="#guard">The guard</a></li>
+    <li><a href="#guard">Pace and the guard</a></li>
     <li><a href="#evidence">Evidence pack</a></li>
     <li><a href="#config">Configuration</a></li>
     <li><a href="#reference">Reference</a></li>
@@ -111,11 +111,24 @@ WHERE THE METER WENT  codex · meter points per session (5h / week)
   <p>Codex writes its meter into every rollout file, so there is nothing to set up. Claude Code shows the meter to its status line (<code>rate_limits.five_hour</code> and <code>seven_day</code>) but doesn't keep it in the transcripts. <code>checkmeter record</code> is a status-line command that saves those readings to <code>~/.checkmeter/claude-meter.jsonl</code> and prints a short line of its own.</p>
   <pre class="term"><code>checkmeter setup claude           <span class="c"># show the change to ~/.claude/settings.json</span>
 checkmeter setup claude --write   <span class="c"># apply it; the old file is kept as settings.json.checkmeter-backup-…</span></code></pre>
-  <p>If you already have a status line, setup keeps it: the new command is <code>checkmeter record --then '&lt;your old command&gt;'</code>, which runs your command with the same input and prints its output followed by <code>│ ⛽ 5h 24% · wk 41% · cache 5m</code>. A reading is only appended when it changed or 10 minutes passed, so the log stays small. Readings exist from the day you run setup; older Claude Code sessions show "before the meter was recorded".</p>
+  <p>If you already have a status line, setup keeps it: the new command is <code>checkmeter record --then '&lt;your old command&gt;'</code>, which runs your command with the same input and prints its output followed by <code>│ ⛽ 5h 24% · wk 41% · cache 5m</code> (plus <code>· out 11:37</code> when the <a href="#pace">pace</a> empties the 5-hour window before it resets). A reading is only appended when it changed or 10 minutes passed, so the log stays small. Readings exist from the day you run setup; older Claude Code sessions show "before the meter was recorded".</p>
 </section>
 
 <section id="guard">
-  <h2><span>§5</span> The guard</h2>
+  <h2><span>§5</span> Pace and the guard</h2>
+  <h3 id="pace">Pace forecast</h3>
+  <p>The report's <b>PACE</b> section reads each open window forward: at the rate you're going now, when does it reach 100%, and is that before it resets? It is in <code>--json</code> as <code>pace</code> and in the analyser on the home page too.</p>
+  <pre class="term"><code><b>PACE</b>  <span class="c">where each open window is heading at the rate you're going now</span>
+  <b>claude</b> 5h    50.3% now <span class="c">·</span> 32 pts/h since 09:03 <span class="c">·</span> runs out ≈ 11:37, 1 h 40 min before the reset at 13:17
+  <b>claude</b> week  36.6% now <span class="c">·</span> 7.0 pts/day since Sat 24 Oct <span class="c">·</span> on pace for 44% at the reset (Thu 29 Oct 10:00)
+  <b>codex</b>  5h    6% now <span class="c">·</span> idle since 01:36; the window resets at 06:21</code></pre>
+  <ul class="limits">
+    <li><b>5-hour window.</b> The rise over the last hour of readings in the current window (or since the window opened, if that's sooner), idle minutes included. With no reading for 30 minutes the window is <i>idle</i> and gets no forecast; under 10 minutes of readings is <i>too early to call</i>.</li>
+    <li><b>Week.</b> Points per calendar day since the first reading in the window, because a one-hour rate would assume you code around the clock. It needs 6 hours of readings.</li>
+    <li><b>Status line.</b> <code>checkmeter record</code> adds <code>out 11:37</code> only when the 5-hour window runs out before it resets. Otherwise the line stays as it was.</li>
+    <li>A window whose reset time has passed is left out: it already rolled over, and the new one has no pace yet. A credit inside the window (METER DROP) doesn't restart it.</li>
+  </ul>
+  <h3>The guard</h3>
   <p><code>checkmeter guard</code> is meant to run as a PreToolUse hook. It reads the newest meter reading (the newest Codex rollout, or the Claude Code meter log) and exits 2 with a message on stderr when a meter is at or over the line. Both clients treat exit 2 as "block this tool call and show the reason to the model", so the agent stops and reports instead of getting cut off halfway through an edit.</p>
   <pre class="term"><code>checkmeter setup guard codex      <span class="c"># prints the [[hooks.PreToolUse]] block for ~/.codex/config.toml</span>
 checkmeter setup guard claude     <span class="c"># prints the hooks.PreToolUse block for ~/.claude/settings.json</span>
@@ -138,7 +151,7 @@ checkmeter setup guard codex --max-5h 80 --max-week 90</code></pre>
       <tr><td>Claude Code transcripts</td><td><code>~/.claude/projects/**.jsonl</code> (subagents included)</td><td><code>$CLAUDE_CONFIG_DIR</code>, <code>--claude-dir</code></td></tr>
       <tr><td>Claude Code meter log</td><td><code>~/.checkmeter/claude-meter.jsonl</code></td><td><code>$CHECKMETER_HOME</code>, <code>--meter-log</code></td></tr>
       <tr><td>home folder for all of the above</td><td>your home</td><td><code>--home</code></td></tr>
-      <tr><td>colour</td><td>on for a terminal</td><td><code>NO_COLOR</code>, <code>--no-color</code>, <code>FORCE_COLOR</code></td></tr>
+      <tr><td>colour</td><td>on for a terminal</td><td><code>NO_COLOR</code>, <code>FORCE_COLOR</code>; <code>--color</code> / <code>--no-color</code> win over both</td></tr>
     </tbody>
   </table>
   <p>Compressed rollouts (<code>.jsonl.zst</code>) are read when a <code>zstd</code> binary is on the PATH and skipped with a note otherwise.</p>
@@ -169,6 +182,7 @@ checkmeter setup guard codex --max-5h 80 --max-week 90</code></pre>
       <tr><td><code>--fast-ratio N</code></td><td>2</td><td>how many times your baseline counts as a fast meter</td></tr>
       <tr><td><code>--max-5h N</code> / <code>--max-week N</code></td><td>90 / 95</td><td>guard lines, in percent</td></tr>
       <tr><td><code>--no-color</code></td><td></td><td>plain text</td></tr>
+      <tr><td><code>--color</code></td><td></td><td>colour even when piped</td></tr>
     </tbody>
   </table>
   <p>Exit codes: <code>0</code> report printed (findings or not) · <code>2</code> guard blocked · <code>64</code> usage error, with a suggestion when a command or flag looks like a typo.</p>
@@ -181,6 +195,7 @@ checkmeter setup guard codex --max-5h 80 --max-week 90</code></pre>
     <li><b>Weighted tokens.</b> Requests count at API price ratios so cached input doesn't look as expensive as new input. Codex: uncached input 1, cached input 0.1, output 8. Claude: input 1, cache read 0.1, 5-minute cache write 1.25, 1-hour cache write 2, output 5.</li>
     <li><b>Duplicates.</b> Codex subagent rollouts replay their parent's history; Claude Code writes a streamed message several times. Each request is counted once, keyed by its own identity, not by file.</li>
     <li><b>Intervals.</b> Consecutive readings of one window form an interval; a reset (new <code>resets_at</code>, value drops) starts a new one. Each interval's points are shared among the sessions active in it, in proportion to their weighted tokens.</li>
+    <li><b>Pace.</b> 5-hour: (used now − used an hour ago) per hour, projected from the newest reading to 100% or to <code>resets_at</code>. Week: (used now − used at the window's first reading) per day, projected the same way. Readings belong to one window while <code>resets_at</code> stays within 10 minutes (an hour for the week).</li>
     <li><b>Baseline.</b> The median over days with at least 0.2M weighted tokens and 1 point of movement, of points per million weighted tokens. At least 3 such days are needed.</li>
   </ul>
 </section>

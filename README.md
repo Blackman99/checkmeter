@@ -36,11 +36,13 @@ checkmeter                 # last 7 days, Codex + Claude Code
 checkmeter --demo          # the same report on a generated week, if you want to see every finding first
 ```
 
-![checkmeter --demo in a terminal: the findings (CACHE TTL, FAST METER, STUCK RESET, OFF-LEDGER, PLAN CHANGED, METER DROP, LIMIT HIT), then the sessions that moved the meter](site/img/demo.gif)
+![checkmeter --demo in a terminal: the findings (CACHE TTL, FAST METER, STUCK RESET, OFF-LEDGER, PLAN CHANGED, METER DROP, LIMIT HIT), a PACE line per open window with the Claude 5-hour window running out before its reset, then the sessions that moved the meter](site/img/demo.gif)
 
 <sub>The GIF is `checkmeter --demo`: generated data, not a real account.</sub>
 
 What it can say: **FAST METER** (the meter moved ≥2× your own baseline for the same model and speed tier) · **OFF-LEDGER** (points no session on this machine explains) · **STUCK RESET** (the reset time passed, the window didn't) · **PLAN CHANGED** (`plan_type` in the readings switched, or switched and came back) · **METER DROP** (went down without a reset) · **CACHE TTL** (Claude Code stopped writing the 1-hour cache) · or, most of the time, that it all adds up.
+
+Under the findings, **PACE** says where each open window is heading at your current rate: on pace for 44% at the reset, or runs out ≈ 11:37, 1 h 40 min before it. With the recorder on, the status line adds `· out 11:37` only when the 5-hour window is set to run dry early.
 
 Then:
 
